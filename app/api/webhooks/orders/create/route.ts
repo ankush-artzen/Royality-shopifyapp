@@ -149,15 +149,39 @@ export async function POST(req: NextRequest) {
 
         // Update product royalties
         await Promise.all(
-          royaltyUpdates.map((update) =>
-            tx.productRoyalty.update({
+          royaltyUpdates.map(async (update) => {
+            const productRoyalty = await tx.productRoyalty.findUnique({
+              where: { id: update.id },
+            });
+
+            // Force TypeScript to treat totalRoyaltyEarned as object
+            const prev = (productRoyalty?.totalRoyaltyEarned as {
+              amount: number;
+              currency: string;
+              usdAmount: number;
+            }) || { amount: 0, currency: storeCurrency, usdAmount: 0 };
+
+            // Convert current royalty to USD
+            const usdAmount = await convertCurrency(
+              update.amount,
+              storeCurrency,
+              "USD",
+            );
+
+            const newTotal = {
+              amount: prev.amount + update.amount,
+              currency: storeCurrency,
+              usdAmount: prev.usdAmount + usdAmount,
+            };
+
+            return tx.productRoyalty.update({
               where: { id: update.id },
               data: {
                 totalSold: { increment: update.quantity },
-                totalRoyaltyEarned: { increment: update.amount },
+                totalRoyaltyEarned: newTotal,
               },
-            }),
-          ),
+            });
+          }),
         );
 
         const calculatedRoyaltyAmount = lineItemsToAdd.reduce(
@@ -283,3 +307,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

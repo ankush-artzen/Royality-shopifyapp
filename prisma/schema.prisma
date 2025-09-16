@@ -81,7 +81,7 @@ model ProductRoyalty {
   royality            Float
   shop                String?
   totalSold           Int       @default(0)
-  totalRoyaltyEarned  Float     @default(0)
+  totalRoyaltyEarned  Json?
   designer            Designer  @relation(fields: [designerId], references: [id])
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -153,3 +153,4 @@ model RoyaltyTransaction {
 
   @@unique([shop, orderId, productId, designerId], name: "shop_orderId_productId_designerId")
 }
+
