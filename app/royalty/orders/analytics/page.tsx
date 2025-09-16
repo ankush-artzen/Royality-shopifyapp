@@ -167,9 +167,7 @@ export default function ProductRoyaltyFromOrdersPage() {
           appliedFilters={appliedFilters}
         >
           <InlineStack gap="100" align="center">
-            <Box width="10px" >
               <Icon source={SearchIcon} tone="subdued" />
-            </Box>
             <Text as="span" variant="bodySm">
               {apiData?.totalProducts || 0} result
               {apiData?.totalProducts === 1 ? "" : "s"}
