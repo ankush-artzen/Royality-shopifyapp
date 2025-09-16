@@ -1,0 +1,29 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "6ac50fbc61ef6c598b1519b6879336c7"
+name = "Royal-app-local"
+handle = "royal-app-local"
+application_url = "https://somewhere-onto-speaker-tells.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "artzen-demo.myshopify.com"
+include_config_on_deploy = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_checkouts,read_customers,read_orders,read_products,write_checkouts,write_orders,write_products"
+
+[auth]
+redirect_urls = [
+  "https://somewhere-onto-speaker-tells.trycloudflare.com/auth/callback",
+  "https://somewhere-onto-speaker-tells.trycloudflare.com/auth/shopify/callback",
+  "https://somewhere-onto-speaker-tells.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2025-07"
+
+[pos]
+embedded = false
