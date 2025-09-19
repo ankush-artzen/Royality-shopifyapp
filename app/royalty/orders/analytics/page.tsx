@@ -169,14 +169,25 @@ export default function ProductRoyaltyFromOrdersPage() {
         const currency = product.currency ?? "USD";
 
         return [
-          <ProductCell product={product} key={product.productId} />,
-          <span key={product.productId + "-units"}>
+          <ProductCell product={product} key={`${product.productId}-cell`} />,
+          <span key={`${product.productId}-units`}>
             &nbsp;{product.unitSold.toLocaleString()}
           </span>,
-          <CurrencyDisplay amount={product.totalSale} currency={currency} />,
-          <CurrencyDisplay amount={product.totalRoyalty} currency={currency} />,
-          `${(product.royaltyPercentage ?? 0).toFixed(2)}%`,
           <CurrencyDisplay
+            key={`${product.productId}-sale`}
+            amount={product.totalSale}
+            currency={currency}
+          />,
+          <CurrencyDisplay
+            key={`${product.productId}-royalty`}
+            amount={product.totalRoyalty}
+            currency={currency}
+          />,
+          <span key={`${product.productId}-percentage`}>
+            {(product.royaltyPercentage ?? 0).toFixed(2)}%
+          </span>,
+          <CurrencyDisplay
+            key={`${product.productId}-last30`}
             amount={product.last30DaysRoyalty}
             currency={currency}
           />,
@@ -251,3 +262,4 @@ export default function ProductRoyaltyFromOrdersPage() {
     </Page>
   );
 }
+
