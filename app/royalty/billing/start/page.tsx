@@ -236,8 +236,8 @@ export default function HomePage() {
               <BlockStack gap="400">
                 <Banner title="Royalty Amount Status" tone="info" />
 
-                {loadingTx ? (
-                  // Loader State → 3 cards with spinners
+                {/* Loader comes first inside the Card */}
+                {loadingTx && (
                   <BlockStack gap="200">
                     <InlineStack align="start" blockAlign="center" gap="200">
                       {[1, 2, 3].map((i) => (
@@ -245,7 +245,7 @@ export default function HomePage() {
                           <Box minWidth="260px" minHeight="100px" padding="400">
                             <InlineStack align="center" blockAlign="center">
                               <Spinner
-                                accessibilityLabel="Loading balances"
+                                accessibilityLabel={`Loading balance ${i}`}
                                 size="large"
                               />
                             </InlineStack>
@@ -254,131 +254,131 @@ export default function HomePage() {
                       ))}
                     </InlineStack>
                   </BlockStack>
-                ) : (
-                  <BlockStack gap="200">
-                    <InlineStack align="start" blockAlign="center" gap="200">
-                      {/* Balance Used */}
-
-                      {/* Balance Used */}
-                      <Card>
-                        <Box minWidth="260px" minHeight="100px" padding="400">
-                          <Text as="h3" variant="headingXl" tone="subdued">
-                            Balance Used
-                          </Text>
-                          {latestTransaction ? (
-                            <>
-                              <Text
-                                as="h2"
-                                variant="headingMd"
-                                tone={
-                                  balanceUsedINR && balanceUsedINR > 0
-                                    ? "critical"
-                                    : "success"
-                                }
-                                fontWeight="bold"
-                              >
-                                {latestTransaction.balanceUsed?.toFixed(2)}{" "}
-                                {latestTransaction.currency}
-                              </Text>
-                              {balanceUsedINR !== null &&
-                                latestTransaction.currency !== "INR" && (
-                                  <Text
-                                    as="h2"
-                                    variant="headingSm"
-                                    tone="subdued"
-                                  >
-                                    ({balanceUsedINR.toFixed(2)} INR)
-                                  </Text>
-                                )}
-                            </>
-                          ) : (
-                            <Text as="p" tone="subdued">
-                              No Transaction available
-                            </Text>
-                          )}
-                        </Box>
-                      </Card>
-
-                      {/* Balance Remaining */}
-                      <Card>
-                        <Box minWidth="260px" minHeight="100px" padding="400">
-                          <Text as="h3" variant="headingXl" tone="subdued">
-                            Balance Remaining
-                          </Text>
-                          {latestTransaction ? (
-                            <>
-                              <Text
-                                as="h2"
-                                variant="headingMd"
-                                tone={
-                                  balanceRemainingINR && balanceRemainingINR > 0
-                                    ? "success"
-                                    : "subdued"
-                                }
-                                fontWeight="bold"
-                              >
-                                {latestTransaction.balanceRemaining?.toFixed(2)}{" "}
-                                {latestTransaction.currency}
-                              </Text>
-                              {balanceRemainingINR !== null &&
-                                latestTransaction.currency !== "INR" && (
-                                  <Text
-                                    as="h2"
-                                    tone="subdued"
-                                    variant="headingSm"
-                                  >
-                                    ( {balanceRemainingINR.toFixed(2)} INR)
-                                  </Text>
-                                )}
-                            </>
-                          ) : (
-                            <Text as="p" tone="subdued">
-                              No Transaction available
-                            </Text>
-                          )}
-                        </Box>
-                      </Card>
-
-                      {/* Capped Amount */}
-                      <Card>
-                        <Box minWidth="260px" minHeight="100px" padding="400">
-                          <Text as="h3" variant="headingXl" tone="subdued">
-                            Capped Amount
-                          </Text>
-                          {cappedAmount ? (
-                            <>
-                              <Text
-                                as="h2"
-                                variant="headingMd"
-                                tone="subdued"
-                                fontWeight="bold"
-                              >
-                                {cappedAmount.toFixed(2)} {cappedCurrency}
-                              </Text>
-                              {cappedAmountINR !== null &&
-                                cappedCurrency !== "INR" && (
-                                  <Text
-                                    as="h2"
-                                    tone="subdued"
-                                    variant="headingSm"
-                                  >
-                                    ( {cappedAmountINR.toFixed(2)} INR)
-                                  </Text>
-                                )}
-                            </>
-                          ) : (
-                            <Text as="p" tone="subdued">
-                              No Transaction available
-                            </Text>
-                          )}
-                        </Box>
-                      </Card>
-                    </InlineStack>
-                  </BlockStack>
                 )}
+
+                {/* Normal balance cards */}
+                <BlockStack gap="200">
+                  <InlineStack align="start" blockAlign="center" gap="200">
+                    {/* Balance Used */}
+                    <Card>
+                      <Box minWidth="260px" minHeight="100px" padding="400">
+                        <Text as="h3" variant="headingXl" tone="subdued">
+                          Balance Used
+                        </Text>
+                        {latestTransaction ? (
+                          <>
+                            <Text
+                              as="h2"
+                              variant="headingMd"
+                              tone={
+                                balanceUsedINR && balanceUsedINR > 0
+                                  ? "critical"
+                                  : "success"
+                              }
+                              fontWeight="bold"
+                            >
+                              {latestTransaction.balanceUsed?.toFixed(2)}{" "}
+                              {latestTransaction.currency}
+                            </Text>
+                            {balanceUsedINR !== null &&
+                              latestTransaction.currency !== "INR" && (
+                                <Text
+                                  as="h2"
+                                  variant="headingSm"
+                                  tone="subdued"
+                                >
+                                  ({balanceUsedINR.toFixed(2)} INR)
+                                </Text>
+                              )}
+                          </>
+                        ) : (
+                          <Text as="p" tone="subdued">
+                            No Transaction available
+                          </Text>
+                        )}
+                      </Box>
+                    </Card>
+
+                    {/* Balance Remaining */}
+                    <Card>
+                      <Box minWidth="260px" minHeight="100px" padding="400">
+                        <Text as="h3" variant="headingXl" tone="subdued">
+                          Balance Remaining
+                        </Text>
+                        {latestTransaction ? (
+                          <>
+                            <Text
+                              as="h2"
+                              variant="headingMd"
+                              tone={
+                                balanceRemainingINR && balanceRemainingINR > 0
+                                  ? "success"
+                                  : "subdued"
+                              }
+                              fontWeight="bold"
+                            >
+                              {latestTransaction.balanceRemaining?.toFixed(2)}{" "}
+                              {latestTransaction.currency}
+                            </Text>
+                            {balanceRemainingINR !== null &&
+                              latestTransaction.currency !== "INR" && (
+                                <Text
+                                  as="h2"
+                                  tone="subdued"
+                                  variant="headingSm"
+                                >
+                                  ({balanceRemainingINR.toFixed(2)} INR)
+                                </Text>
+                              )}
+                          </>
+                        ) : (
+                          <Text as="p" tone="subdued">
+                            No Transaction available
+                          </Text>
+                        )}
+                      </Box>
+                    </Card>
+
+                    {/* Capped Amount */}
+                    <Card>
+                      <Box minWidth="260px" minHeight="100px" padding="400">
+                        <Text as="h3" variant="headingXl" tone="subdued">
+                          Capped Amount
+                        </Text>
+                        {cappedAmount ? (
+                          <>
+                            <Text
+                              as="h2"
+                              variant="headingMd"
+                              tone="subdued"
+                              fontWeight="bold"
+                            >
+                              {cappedAmount.toFixed(2)} {cappedCurrency}
+                            </Text>
+                            {cappedAmountINR !== null &&
+                              cappedCurrency !== "INR" && (
+                                <Text
+                                  as="h2"
+                                  tone="subdued"
+                                  variant="headingSm"
+                                >
+                                  ({cappedAmountINR.toFixed(2)} INR)
+                                </Text>
+                              )}
+                          </>
+                        ) : (
+                          <Text as="p" tone="subdued">
+                            No Transaction available
+                          </Text>
+                        )}
+                      </Box>
+                    </Card>
+                  </InlineStack>
+                </BlockStack>
               </BlockStack>
             </Card>
           </Layout.Section>
+
           {/* //current status */}
 
           <Layout.Section>
