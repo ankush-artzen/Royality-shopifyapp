@@ -59,27 +59,30 @@ export default function RoyaltyTransactionsPage() {
   }, [app]);
 
   // Fetch transactions with stable reference
-  const fetchTransactions = useCallback(async (pageNumber: number = 1) => {
-    if (!shop) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(
-        `/api/royality/orders/transaction?shop=${shop}&page=${pageNumber}&limit=${limit}`
-      );
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data: ApiResponse = await res.json();
+  const fetchTransactions = useCallback(
+    async (pageNumber: number = 1) => {
+      if (!shop) return;
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch(
+          `/api/royality/orders/transaction?shop=${shop}&page=${pageNumber}&limit=${limit}`,
+        );
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        const data: ApiResponse = await res.json();
 
-      setTransactions(data.transactions || []);
-      setPage(data.page || 1);
-      setTotalPages(data.totalPages || 1);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch transactions");
-      setTransactions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [shop, limit]);
+        setTransactions(data.transactions || []);
+        setPage(data.page || 1);
+        setTotalPages(data.totalPages || 1);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch transactions");
+        setTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [shop, limit],
+  );
 
   // Fetch transactions when shop or page changes
   useEffect(() => {
@@ -95,8 +98,17 @@ export default function RoyaltyTransactionsPage() {
       {tx.shopifyTransactionChargeId}
     </Text>,
     <Text as="h2" variant="headingMd" tone="subdued" key={`${tx.id}-price`}>
-      {tx.price.storeprice.toFixed(2)} {tx.price.storeCurrency}
+      {tx.price.usd.toFixed(2)} {tx.currency}{" "}
+      {tx.price.storeCurrency === "INR" && (
+        <>
+          ({tx.price.storeprice.toFixed(2)} {tx.price.storeCurrency})
+        </>
+      )}
     </Text>,
+
+    //    <Text as="h2" variant="headingMd" tone="subdued" key={`${tx.id}-priceusd`}>
+    //    {tx.price.usd.toFixed(2)} {tx.currency}
+    //  </Text>,
     <Text as="h2" variant="headingMd" tone="success" key={`${tx.id}-royalty`}>
       {tx.royaltyPercentage?.toFixed(2) ?? "-"}%
     </Text>,
@@ -125,6 +137,7 @@ export default function RoyaltyTransactionsPage() {
           "Order Name",
           "Transaction Charge ID",
           "Royalty Price",
+          // "Royalty Price(USD)",
           "Royalty %",
           "Designer ID",
           "Description",

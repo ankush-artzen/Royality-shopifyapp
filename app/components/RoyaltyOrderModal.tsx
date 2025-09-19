@@ -12,6 +12,10 @@ import {
   List,
   Box,
 } from "@shopify/polaris";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "@/app/components/redux/store";
+import { fetchExchangeRate } from "@/app/components/redux/currencySlice";
+import { useEffect } from "react";
 
 interface LineItem {
   productId: string;
@@ -23,6 +27,7 @@ interface LineItem {
   amount: number;
   quantity: number;
   unitPrice: number;
+  royaltyPercentage: number;
   royaltyCharges: number;
 }
 
@@ -74,12 +79,25 @@ const OrderModal: React.FC<OrderModalProps> = ({
   onClose,
   loading = false,
 }) => {
+  const dispatch = useDispatch();
+  const rates = useSelector((state: RootState) => state.currency.rates);
+
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleString();
 
   const renderCurrencyBadge = (currency: string) => (
     <Badge tone={currency === "USD" ? "success" : "warning"}>{currency}</Badge>
   );
+  useEffect(() => {
+    order.lineItem.forEach((item) => {
+      const key = `${order.currency}-USD`;
+      if (!rates[key]) {
+        (dispatch as any)(
+          fetchExchangeRate({ from: order.currency, to: "USD" }),
+        );
+      }
+    });
+  }, [order.lineItem, rates, dispatch, order.currency]);
   const transactions = order.transactions || [];
 
   const renderProductRow = (product: LineItem) => (
@@ -179,12 +197,12 @@ const OrderModal: React.FC<OrderModalProps> = ({
               <Text as="h2" variant="headingLg">
                 Order Summary
               </Text>
-              {renderCurrencyBadge(order.currency)}
+              {/* {renderCurrencyBadge(order.currency)} */}
             </InlineStack>
 
             <Divider />
 
-            <InlineStack align="space-between">
+            <InlineStack gap="200">
               <Text as="span" tone="subdued">
                 Order Date
               </Text>
@@ -193,7 +211,7 @@ const OrderModal: React.FC<OrderModalProps> = ({
               </Text>
             </InlineStack>
 
-            <InlineStack align="space-between">
+            <InlineStack gap="400">
               <Text as="span" tone="subdued">
                 Order ID
               </Text>
@@ -202,45 +220,124 @@ const OrderModal: React.FC<OrderModalProps> = ({
               </Text>
             </InlineStack>
 
-            <InlineStack align="space-between">
+            <InlineStack gap="400">
               <Text as="span" tone="subdued">
                 Total Royalty Amount
               </Text>
               <Text as="span" fontWeight="bold" variant="headingMd">
-                {order.calculatedRoyaltyAmount.toFixed(2)} {order.currency}
+                USD {order.convertedCurrencyAmountRoyality.toFixed(2)}{" "}
+                {order.currency === "INR" && (
+                  <>
+                    ({order.calculatedRoyaltyAmount.toFixed(2)} {order.currency}
+                    )
+                  </>
+                )}
               </Text>
             </InlineStack>
 
-            {/*
-            // Commented out converted currency
-            <InlineStack align="space-between">
+            {/* {/*
+             converted currency */}
+            {/* <InlineStack align="space-between">
               <Text as="span" tone="subdued">
-                Converted Royalty (USD)
+                Total Royalty Amount (USD)
               </Text>
               <Text as="span" fontWeight="bold" variant="headingMd">
                 ${order.convertedCurrencyAmountRoyality.toFixed(2)}
               </Text>
-            </InlineStack>
-            */}
+            </InlineStack> */}
           </BlockStack>
         </Card>
 
         {/* Products */}
         <Card>
-          <BlockStack gap="300">
+          <BlockStack gap="400">
             <Text as="h2" variant="headingLg">
               Products ({order.lineItem?.length || 0})
             </Text>
             <Divider />
-            {order.lineItem?.length > 0 ? (
-              <List>
-                {order.lineItem.map((product, index) => (
-                  <List.Item key={index}>
-                    {renderProductRow(product)}
-                    {index < order.lineItem.length - 1 && <Divider />}
-                  </List.Item>
+
+            {order.lineItem && order.lineItem.length > 0 ? (
+              <BlockStack gap="300">
+                {Object.values(
+                  order.lineItem.reduce(
+                    (
+                      acc: Record<
+                        string,
+                        {
+                          productId: string;
+                          title: string;
+                          variants: {
+                            variantTitle: string;
+                            quantity: number;
+                            unitPrice: number;
+                            royality: number;
+                            royaltyPercentage: number;
+                          }[];
+                        }
+                      >,
+                      item,
+                    ) => {
+                      if (!acc[item.productId]) {
+                        acc[item.productId] = {
+                          productId: item.productId,
+                          title: item.title,
+                          variants: [],
+                        };
+                      }
+
+                      acc[item.productId].variants.push({
+                        variantTitle: item.variantTitle || "Default Variant",
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        royality: item.royality,
+                        royaltyPercentage: item.royaltyPercentage,
+                      });
+
+                      return acc;
+                    },
+                    {},
+                  ),
+                ).map((product) => (
+                  <Card key={product.productId}>
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingMd" fontWeight="semibold">
+                        {product.title || "Unknown Product"}
+                      </Text>
+
+                      <BlockStack gap="100">
+                        {product.variants.map((v, i) => (
+                          <Box key={i} padding="200">
+                            <InlineStack gap="600" blockAlign="center">
+                              <Text as="span" tone="subdued">
+                                <strong>Variant:</strong> {v.variantTitle}
+                              </Text>
+                              <Text as="span" tone="subdued">
+                                <strong>Qty:</strong> {v.quantity}
+                              </Text>
+                              <Text as="span" tone="subdued">
+                                <strong>Unit Price:</strong>{" "}
+                                {rates[`${order.currency}-USD`]
+                                  ? (
+                                      v.unitPrice *
+                                      rates[`${order.currency}-USD`]
+                                    ).toFixed(2)
+                                  : "—"}{" "}
+                                 ({v.unitPrice.toFixed(2)} {order.currency})
+                              </Text>
+
+                              <Badge tone="info">
+                                {typeof v.royaltyPercentage === "number"
+                                  ? v.royaltyPercentage.toFixed(2) + "%"
+                                  : "-"}
+                              </Badge>
+                            </InlineStack>
+                          </Box>
+                        ))}
+                      </BlockStack>
+                    </BlockStack>
+                  </Card>
                 ))}
-              </List>
+              </BlockStack>
             ) : (
               <Text as="p" tone="subdued">
                 No products found
@@ -251,21 +348,60 @@ const OrderModal: React.FC<OrderModalProps> = ({
 
         {/* Transactions */}
         <Card>
-          <BlockStack gap="300">
+          <BlockStack gap="400">
             <Text as="h2" variant="headingLg">
               Transactions ({order.transactions?.length || 0})
             </Text>
             <Divider />
 
             {transactions.length > 0 ? (
-              <List>
+              <BlockStack gap="300">
                 {transactions.map((tx, idx) => (
-                  <List.Item key={tx.id}>
-                    {renderTransactionRow(tx)}
-                    {idx < transactions.length - 1 && <Divider />}
-                  </List.Item>
+                  <Box key={tx.id} padding="300">
+                    <BlockStack gap="200">
+                      <InlineStack align="space-between" blockAlign="center">
+                        <Text as="span" fontWeight="medium">
+                          Charge ID: {tx.shopifyTransactionChargeId}
+                        </Text>
+
+                        {/* <Badge tone="success">{tx.price.storeCurrency}</Badge> */}
+                      </InlineStack>
+
+                      <InlineStack gap="400" blockAlign="center">
+                        <Text as="span" tone="subdued">
+                          Royalty %
+                        </Text>
+                        <Badge tone="info">
+                          {typeof tx.royaltyPercentage === "number"
+                            ? tx.royaltyPercentage.toFixed(2) + "%"
+                            : "-"}
+                        </Badge>
+                      </InlineStack>
+
+                      <InlineStack gap="400" blockAlign="center">
+                        <Text as="span" tone="subdued">
+                          Royalty Price
+                        </Text>
+                        <Text as="span" fontWeight="bold" variant="headingMd">
+                          {tx.currency} {tx.price.usd.toFixed(2)}{" "}
+                          {tx.price.storeCurrency === "INR" && (
+                            <>
+                              ({tx.price.storeprice.toFixed(2)}{" "}
+                              {tx.price.storeCurrency})
+                            </>
+                          )}
+                        </Text>
+                      </InlineStack>
+
+                      {tx.description && (
+                        <Text as="span" tone="subdued">
+                          {tx.description}
+                        </Text>
+                      )}
+                    </BlockStack>
+                  </Box>
                 ))}
-              </List>
+              </BlockStack>
             ) : (
               <Text as="p" tone="subdued">
                 No transactions found

@@ -19,6 +19,7 @@ interface LineItem {
   quantity: number;
   unitPrice: number;
   royaltyCharges: number;
+  royaltyPercentage: number;
 }
 
 interface Transaction {
@@ -67,6 +68,7 @@ export default function RoyaltiesPage() {
   const [totalOrders, setTotalOrders] = useState<number>(0);
   const [modalActive, setModalActive] = useState<boolean>(false);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
+  const totalCurrency = orders.length > 0 ? orders[0].currency : "USD";
 
   const app = useAppBridge();
   const router = useRouter();
@@ -161,8 +163,15 @@ export default function RoyaltiesPage() {
               </a>,
               <span key={`id-${order.orderId}`}>{order.orderId}</span>,
               <span key={`royalty1-${order.orderId}`}>
-                {order.calculatedRoyaltyAmount.toFixed(2)} {order.currency}
+                {order.convertedCurrencyAmountRoyality.toFixed(2)} USD{" "}
+                {order.currency === "INR" && (
+                  <>
+                    ({order.calculatedRoyaltyAmount.toFixed(2)} {order.currency}
+                    )
+                  </>
+                )}
               </span>,
+
               // <span key={`royalty2-${order.orderId}`}>
               //   {order.convertedCurrencyAmountRoyality.toFixed(2)} USD
               // </span>,
@@ -177,10 +186,14 @@ export default function RoyaltiesPage() {
           [
             "TOTAL",
             "",
-            `${totalRoyalty.toFixed(2)}`,
-            // `${totalConvertedRoyalty.toFixed(2)} USD`,
-            "",
+            <span key="total-royalty">
+              {totalConvertedRoyalty.toFixed(2)} USD{" "}
+              {totalCurrency === "INR" && `(${totalRoyalty.toFixed(2)} INR)`}
+            </span>,
+            "", // empty for "Created At"
           ],
+
+          // `${totalConvertedRoyalty.toFixed(2)} USD`,
         ]
       : [];
 
@@ -190,12 +203,7 @@ export default function RoyaltiesPage() {
       backAction={{ content: "Back", onAction: () => router.back() }}
     >
       <CustomDataTable
-        columns={[
-          "Order Name",
-          "Order ID",
-          "Royalty Amount",
-          "Created At",
-        ]}
+        columns={["Order Name", "Order ID", "Royalty Amount", "Created At"]}
         rows={rows}
         loading={loading}
         error={error}

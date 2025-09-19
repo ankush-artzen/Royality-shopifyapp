@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Modal, Text } from "@shopify/polaris";
+import { Modal, Text, Button, Box } from "@shopify/polaris";
 
 interface DeleteConfirmationModalProps {
   open: boolean;
@@ -12,6 +12,7 @@ interface DeleteConfirmationModalProps {
   message?: string;
   confirmText?: string;
   cancelText?: string;
+  actionType?: "switchOn" | "switchOff"; 
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
@@ -23,6 +24,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   message = "Are you sure you want to delete this item? This action cannot be undone.",
   confirmText = "Delete",
   cancelText = "Cancel",
+  actionType = "switchOff",
 }) => {
   return (
     <>
@@ -32,7 +34,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
           .Polaris-Backdrop {
             backdrop-filter: blur(1px);
             -webkit-backdrop-filter: blur(6px);
-            background-color: rgba(255, 255, 255, 0.01); /* Transparent but triggers blur */
+            background-color: rgba(255, 255, 255, 0.01);
           }
         `}
       </style>
@@ -41,18 +43,23 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
         open={open}
         onClose={onClose}
         title={title}
-        primaryAction={{
-          content: confirmText,
-          onAction: onConfirm,
-          destructive: true,
-          loading: loading,
-        }}
-        secondaryActions={[
-          {
-            content: cancelText,
-            onAction: onClose,
-          },
-        ]}
+        footer={
+          <Box padding="400" paddingBlockStart="400">
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <Button onClick={onClose}>
+                {cancelText}
+              </Button>
+              <Button 
+                tone={actionType === "switchOn" ? "success" : "critical"}
+                variant="secondary"
+                loading={loading}
+                onClick={onConfirm}
+              >
+                {confirmText}
+              </Button>
+            </div>
+          </Box>
+        }
       >
         <Modal.Section>
           <Text as="p">{message}</Text>

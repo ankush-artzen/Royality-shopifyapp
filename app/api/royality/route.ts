@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Build dynamic query
-    const where: any = { shop, inArchive: false }; 
+    // Build dynamic query (include archived + active)
+    const where: any = { shop };
     if (designerId) where.designerId = designerId;
     if (productId) where.productId = productId;
     if (status) where.status = status;
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     // Calculate total pages
     const totalPages = Math.ceil(totalCount / limit) || 1;
 
-    // Clamp the page number to a valid range
+    // Clamp page number
     page = Math.min(Math.max(page, 1), totalPages);
 
     // Fetch paginated data, newest first

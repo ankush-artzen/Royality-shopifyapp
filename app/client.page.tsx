@@ -9,11 +9,11 @@ import {
   BlockStack,
   InlineStack,
   Button,
-  Spinner,
   Banner,
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import ActionCard from "@/app/components/ActionCard";
 
 export default function HomePage() {
   const router = useRouter();
@@ -21,28 +21,24 @@ export default function HomePage() {
 
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Stats
   const [productCount, setProductCount] = useState<number>(0);
   const [totalRoyaltyAmount, settotalRoyaltyAmount] = useState<number>(0);
   const [totalOrders, settotalOrders] = useState<number>(0);
   const [totalConvertedRoyalty, setTotalConvertedRoyalty] = useState<number>(0);
+  const [latestCurrency, setLatestCurrency] = useState<string>("USD");
+  const [shopCurrency, setShopCurrency] = useState<string>(" ");
 
-  const [error, setError] = useState<string | null>(null);
-
-  //  shop
+  // Get shop from App Bridge
   useEffect(() => {
     const shopFromConfig = (app as any)?.config?.shop;
-    console.log("App Bridge shop:", shopFromConfig);
-
-    if (shopFromConfig) {
-      setShop(shopFromConfig);
-    } else {
-      setError("Unable to retrieve shop info from App Bridge config");
-    }
+    if (shopFromConfig) setShop(shopFromConfig);
+    else setError("Unable to retrieve shop info from App Bridge config");
   }, [app]);
 
-  // Fetch product + royalty stats
+  // Fetch all stats
   useEffect(() => {
     if (!shop) return;
 
@@ -51,37 +47,41 @@ export default function HomePage() {
       setError(null);
 
       try {
-        // Fetch product counts
+        // Get shop currency
+        const resShop = await fetch(`/api/royality/counts?shop=${shop}`);
+        const dataShop = await resShop.json();
+        setShopCurrency(dataShop.shopCurrency || " ");
+
+        // Get product counts + total converted royalty
         const resCounts = await fetch(`/api/royality/counts?shop=${shop}`);
         const dataCounts = await resCounts.json();
-
-        if (!resCounts.ok) {
+        if (!resCounts.ok)
           throw new Error(
             dataCounts?.error || "Failed fetching product counts",
           );
-        }
         setProductCount(dataCounts.totalProducts || 0);
+        setTotalConvertedRoyalty(dataCounts.totalConvertedRoyalty || 0);
 
-        // Fetch total royalties and orders
+        // Get total royalties + orders
         const resTotals = await fetch(
           `/api/royality/orders/counts?shop=${shop}`,
         );
         const dataTotals = await resTotals.json();
-
-        if (!resTotals.ok) {
+        if (!resTotals.ok)
           throw new Error(
             dataTotals?.error || "Failed fetching royalty totals",
           );
-        }
         settotalRoyaltyAmount(dataTotals.totalRoyaltyAmount || 0);
         settotalOrders(dataTotals.totalOrders || 0);
-        setTotalConvertedRoyalty(dataTotals.totalConvertedRoyalty || 0);
       } catch (err: any) {
         console.error("Error fetching stats:", err);
         setError(err.message || "Failed to fetch data");
+
         setProductCount(0);
         settotalRoyaltyAmount(0);
         settotalOrders(0);
+        setTotalConvertedRoyalty(0);
+        setShopCurrency("USD");
       } finally {
         setLoading(false);
       }
@@ -93,31 +93,32 @@ export default function HomePage() {
   return (
     <Page>
       <Layout>
+        {/* Hero Section */}
         <Layout.Section>
-          <Card>
+          <Card padding="400">
             <BlockStack gap="400" align="center">
-              <Text variant="heading2xl" as="h1" alignment="center">
+              <Text
+                variant="heading2xl"
+                as="h1"
+                tone="magic"
+                alignment="center"
+              >
                 Welcome to Royalty App
               </Text>
-              <Text as="p" variant="bodyLg" tone="subdued" alignment="center">
+              <Text
+                as="p"
+                variant="bodyLg"
+                tone="magic-subdued"
+                alignment="center"
+              >
                 Effortlessly manage products, assign royalties, and track
                 performance
               </Text>
-              <InlineStack gap="300" align="center">
-                <Button
-                  variant="primary"
-                  onClick={() => router.push("/royalty/create")}
-                >
-                  Add Product
-                </Button>
-                <Button onClick={() => router.push("/royalty")}>
-                  View Royalties
-                </Button>
-              </InlineStack>
             </BlockStack>
           </Card>
         </Layout.Section>
 
+        {/* Error Banner */}
         {error && (
           <Layout.Section>
             <Banner title="Error" tone="critical">
@@ -126,48 +127,91 @@ export default function HomePage() {
           </Layout.Section>
         )}
 
+        {/* Quick Actions */}
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <Text as="h3" variant="headingLg" fontWeight="semibold">
+                Quick Actions
+              </Text>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "20px",
+                  justifyContent: "center",
+                }}
+              >
+                <ActionCard
+                  title="Add Products"
+                  description="Create new products with royalty settings"
+                  action={() => router.push("/royalty/create")}
+                  buttonText="Add Product"
+                />
+                <ActionCard
+                  title="View Analytics"
+                  description="See detailed royalty reports and analytics"
+                  action={() => router.push("/royalty/orders/analytics")}
+                  buttonText="View Reports"
+                />
+                <ActionCard
+                  title="Royalties Transactions"
+                  description="View all royalty products transactions"
+                  action={() => router.push("/royalty/orders/transaction")}
+                  buttonText="Manage Transactions"
+                />
+              </div>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
         {/* Quick Insights */}
         <Layout.Section>
           <Card>
             <BlockStack gap="400">
-              <Text as="h2" fontWeight="bold" variant="headingMd">
+              <Text as="h2" fontWeight="bold" variant="headingLg">
                 Quick Insights
               </Text>
-              <InlineStack gap="400" align="center" wrap={false}>
-                <StatCard
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "20px",
+                  justifyContent: "center",
+                }}
+              >
+                <ActionCard
                   title="Royalty Products"
                   value={productCount}
                   loading={loading}
                 />
-
-                <StatCard
+                <ActionCard
                   title="Total Royalties"
-                  value={`${totalRoyaltyAmount.toFixed(2)}`}
+                  value={
+                    loading
+                      ? ""
+                      : `${totalRoyaltyAmount.toFixed(2)} ${shopCurrency}`
+                  }
                   loading={loading}
                 />
-
-                <StatCard
+                <ActionCard
                   title="Total Orders"
-                  value={`${totalOrders}`}
+                  value={totalOrders}
                   loading={loading}
                 />
-
-                {/* <StatCard
-                  title="Total Royalties All products"
-                  value={`${totalConvertedRoyalty.toFixed(2)}`}
-                  loading={loading}
-                /> */}
-              </InlineStack>
+              </div>
             </BlockStack>
           </Card>
         </Layout.Section>
+
+        {/* About Us */}
         <Layout.Section>
           <Card>
-            <Text as="h2" fontWeight="bold" variant="headingMd">
-              About Us{" "}
+            <Text as="h2" fontWeight="bold" variant="headingLg">
+              About Us
             </Text>
             <BlockStack gap="200" align="center">
-              <Text as="h2" variant="bodyLg" tone="subdued">
+              <Text as="h2" variant="bodyLg" tone="magic-subdued">
                 A royalty management system that tracks and calculates payments
                 owed to creators. Collect sales data, aggregate earnings, and
                 ensure timely distribution with ease.
@@ -175,7 +219,7 @@ export default function HomePage() {
               <InlineStack>
                 <Button
                   onClick={() => router.push("/royalty/create")}
-                  variant="primary"
+                  variant="secondary"
                 >
                   Get Started
                 </Button>
@@ -185,40 +229,5 @@ export default function HomePage() {
         </Layout.Section>
       </Layout>
     </Page>
-  );
-}
-
-// ✅ Reusable Card component for stats
-function StatCard({
-  title,
-  value,
-  loading,
-}: {
-  title: string;
-  value: string | number;
-  loading: boolean;
-}) {
-  return (
-    <div style={{ minWidth: "250px", minHeight: "120px" }}>
-      <Card>
-        <BlockStack gap="200" align="center">
-          <Text as="p" tone="subdued" fontWeight="bold" alignment="center">
-            {title}
-          </Text>
-          {loading ? (
-            <Spinner />
-          ) : (
-            <Text
-              variant="heading2xl"
-              as="h3"
-              fontWeight="bold"
-              alignment="center"
-            >
-              {value}
-            </Text>
-          )}
-        </BlockStack>
-      </Card>
-    </div>
   );
 }

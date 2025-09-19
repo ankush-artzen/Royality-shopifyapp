@@ -1,5 +1,8 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "@/app/components/redux/store";
+import { fetchExchangeRate } from "@/app/components/redux/currencySlice";
 import {
   Page,
   Card,
@@ -8,7 +11,6 @@ import {
   Text,
   Button,
   Tooltip,
-  Box,
   Icon,
 } from "@shopify/polaris";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -32,6 +34,9 @@ const FALLBACK_IMAGE =
 export default function ProductRoyaltyFromOrdersPage() {
   const app = useAppBridge();
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+
+  const { rates } = useSelector((state: RootState) => state.currency);
 
   const [shop, setShop] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,12 +49,14 @@ export default function ProductRoyaltyFromOrdersPage() {
     useState<keyof ApiResponse["products"][0]>("totalRoyalty");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [storeCurrency, setStoreCurrency] = useState<string>("USD"); // fallback
 
   const formatCurrency = useCallback(
     (value: number, currency?: string | null) =>
       new Intl.NumberFormat(undefined, {
         style: "currency",
-        currency: currency || "",
+        currency: currency ?? "USD",
         maximumFractionDigits: 2,
       }).format(value),
     [],
@@ -78,12 +85,21 @@ export default function ProductRoyaltyFromOrdersPage() {
 
       const data: ApiResponse = await res.json();
       setApiData(data);
+
+      data.products.forEach((p) => {
+        if (p.currency && p.currency !== "USD") {
+          dispatch(fetchExchangeRate({ from: p.currency, to: "USD" }));
+        }
+        if (p.currency && p.currency !== "INR") {
+          dispatch(fetchExchangeRate({ from: p.currency, to: "INR" }));
+        }
+      });
     } catch (e: any) {
       setError(e?.message || "Failed to load data.");
     } finally {
       setLoading(false);
     }
-  }, [shop, queryValue, sortKey, sortDir, page]);
+  }, [shop, queryValue, sortKey, sortDir, page, dispatch]);
 
   useEffect(() => {
     if (!app) return;
@@ -102,37 +118,72 @@ export default function ProductRoyaltyFromOrdersPage() {
     setPage(1);
   }, []);
 
-  const totalPages = apiData?.totalPages || 1;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchData();
+    setIsRefreshing(false);
+  };
 
+  const totalPages = apiData?.totalPages || 1;
   const handlePrev = () => setPage((prev) => Math.max(1, prev - 1));
   const handleNext = () => setPage((prev) => Math.min(totalPages, prev + 1));
 
-  // Prepare columns and rows for CustomDataTable
+  // Currency display component
+  const CurrencyDisplay = useCallback(
+    ({ amount, currency }: { amount: number; currency: string }) => {
+      if (currency === "USD") {
+        // Only USD
+        return <Text as="span">{formatCurrency(amount, "USD")}</Text>;
+      }
+
+      // For INR or other currencies, show original + USD
+      const rateToUSD = rates[`${currency}-USD`] || 1;
+      const convertedUSD = amount * rateToUSD;
+
+      return (
+        <>
+          <Text as="span">{formatCurrency(amount, currency)}</Text>
+          <Text as="span" tone="subdued">
+            {` (${formatCurrency(convertedUSD, "USD")})`}
+          </Text>
+        </>
+      );
+    },
+    [rates, formatCurrency],
+  );
+
+  // Columns
   const columns = [
     "Product / Variant",
     "Units Sold",
     "Total Sale",
     "Total Royalty",
-    // "Total Royalty (USD)",
     "Royalty %",
     "Royalty Last 30 Days",
   ];
 
-  const rows =
-    apiData?.products.map((product: LineItemStat) => [
-      <ProductCell product={product} key={product.productId} />,
-      product.unitSold.toLocaleString(),
-      formatCurrency(product.totalSale, product.currency),
-      formatCurrency(product.totalRoyalty, product.currency),
-      // ✅ Converted Royalty column (USD)
-      // new Intl.NumberFormat(undefined, {
-      //   style: "currency",
-      //   currency: "USD",
-      //   maximumFractionDigits: 2,
-      // }).format(product.convertedCurrencyAmountRoyalty || 0),
-      (product.royaltyPercentage ?? 0).toFixed(2) + "%",
-      formatCurrency(product.last30DaysRoyalty, product.currency),
-    ]) || [];
+  // Rows
+  const rows = useMemo(
+    () =>
+      apiData?.products.map((product: LineItemStat) => {
+        const currency = product.currency ?? "USD";
+
+        return [
+          <ProductCell product={product} key={product.productId} />,
+          <span key={product.productId + "-units"}>
+            &nbsp;{product.unitSold.toLocaleString()}
+          </span>,
+          <CurrencyDisplay amount={product.totalSale} currency={currency} />,
+          <CurrencyDisplay amount={product.totalRoyalty} currency={currency} />,
+          `${(product.royaltyPercentage ?? 0).toFixed(2)}%`,
+          <CurrencyDisplay
+            amount={product.last30DaysRoyalty}
+            currency={currency}
+          />,
+        ];
+      }) || [],
+    [apiData, CurrencyDisplay],
+  );
 
   return (
     <Page
@@ -148,9 +199,13 @@ export default function ProductRoyaltyFromOrdersPage() {
               Export
             </Button>
           </Tooltip>
-
           <Tooltip content="Reload data">
-            <Button icon={RefreshIcon} onClick={fetchData} disabled={loading} />
+            <Button
+              icon={RefreshIcon}
+              onClick={handleRefresh}
+              disabled={loading || isRefreshing}
+              loading={isRefreshing}
+            />
           </Tooltip>
         </InlineStack>
       }
@@ -167,7 +222,7 @@ export default function ProductRoyaltyFromOrdersPage() {
           appliedFilters={appliedFilters}
         >
           <InlineStack gap="100" align="center">
-              <Icon source={SearchIcon} tone="subdued" />
+            <Icon source={SearchIcon} tone="subdued" />
             <Text as="span" variant="bodySm">
               {apiData?.totalProducts || 0} result
               {apiData?.totalProducts === 1 ? "" : "s"}
@@ -176,7 +231,6 @@ export default function ProductRoyaltyFromOrdersPage() {
         </Filters>
       </Card>
 
-      {/* Use CustomDataTable */}
       <CustomDataTable
         columns={columns}
         rows={rows}
@@ -186,7 +240,6 @@ export default function ProductRoyaltyFromOrdersPage() {
         emptyStateImage={FALLBACK_IMAGE}
       />
 
-      {/* Pagination */}
       {!loading && !error && apiData?.products.length ? (
         <Pagination
           page={page}

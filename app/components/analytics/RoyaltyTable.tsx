@@ -45,52 +45,52 @@ export function ProductCell({ product }: { product: LineItemStat }) {
   );
 }
 
-export function RoyaltyTable({
-  data,
-  formatCurrency,
-}: {
-  data: ApiResponse;
-  formatCurrency: (value: number, currency?: string | null) => string;
-}) {
-  return (
-    <IndexTable
-    resourceName={{ singular: "product", plural: "products" }}
-    itemCount={data.products.length}
-    selectable={false} 
-    headings={[
-      { title: "Product / Variant", id: "product" },
-      { title: "Units Sold", id: "unitSold" },
-      { title: "Total Sale", id: "totalSale" },
-      { title: "Total Royalty", id: "totalRoyalty" },
-      { title: "Royalty %", id: "royaltyPercentage" },
-      { title: "Royalty Last 30 Days", id: "last30DaysRoyalty" },
-    ]}
-  >
-    {data.products.map((product, index) => (
-      <IndexTable.Row
-        id={product.productId}
-        key={`${product.productId}-${index}`}
-        position={index}
-      >
-        <IndexTable.Cell>
-          <ProductCell product={product} />
-        </IndexTable.Cell>
-        <IndexTable.Cell>{product.unitSold.toLocaleString()}</IndexTable.Cell>
-        <IndexTable.Cell>
-          {formatCurrency(product.totalSale, product.currency)}
-        </IndexTable.Cell>
-        <IndexTable.Cell>
-          {formatCurrency(product.totalRoyalty, product.currency)}
-        </IndexTable.Cell>
-        <IndexTable.Cell>
-          {(product.royaltyPercentage ?? 0).toFixed(2)}%
-        </IndexTable.Cell>
-        <IndexTable.Cell>
-          {formatCurrency(product.last30DaysRoyalty, product.currency)}
-        </IndexTable.Cell>
-      </IndexTable.Row>
-    ))}
-  </IndexTable>
+// export function RoyaltyTable({
+//   data,
+//   formatCurrency,
+// }: {
+//   data: ApiResponse;
+//   formatCurrency: (value: number, currency?: string | null) => string;
+// }) {
+//   return (
+//     <IndexTable
+//     resourceName={{ singular: "product", plural: "products" }}
+//     itemCount={data.products.length}
+//     selectable={false} 
+//     headings={[
+//       { title: "Product / Variant", id: "product" },
+//       { title: "Units Sold", id: "unitSold" },
+//       { title: "Total Sale", id: "totalSale" },
+//       { title: "Total Royalty", id: "totalRoyalty" },
+//       { title: "Royalty %", id: "royaltyPercentage" },
+//       { title: "Royalty Last 30 Days", id: "last30DaysRoyalty" },
+//     ]}
+//   >
+//     {data.products.map((product, index) => (
+//       <IndexTable.Row
+//         id={product.productId}
+//         key={`${product.productId}-${index}`}
+//         position={index}
+//       >
+//         <IndexTable.Cell>
+//           <ProductCell product={product} />
+//         </IndexTable.Cell>
+//         <IndexTable.Cell>{product.unitSold.toLocaleString()}</IndexTable.Cell>
+//         <IndexTable.Cell>
+//           {formatCurrency(product.totalSale, product.currency)}
+//         </IndexTable.Cell>
+//         <IndexTable.Cell>
+//           {formatCurrency(product.totalRoyalty, product.currency)}
+//         </IndexTable.Cell>
+//         <IndexTable.Cell>
+//           {(product.royaltyPercentage ?? 0).toFixed(2)}%
+//         </IndexTable.Cell>
+//         <IndexTable.Cell>
+//           {formatCurrency(product.last30DaysRoyalty, product.currency)}
+//         </IndexTable.Cell>
+//       </IndexTable.Row>
+//     ))}
+//   </IndexTable>
   
-  );
-}
+//   );
+// }

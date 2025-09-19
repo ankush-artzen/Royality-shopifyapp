@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma-connect";
 
-export async function DELETE(
+export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
@@ -24,30 +24,34 @@ export async function DELETE(
       );
     }
 
-    // Find the royalty record
-    const royalty = await prisma.productRoyalty.findFirst({
-      where: { shopifyId: id, shop },
-    });
-
-    if (!royalty) {
+    // Parse request body
+    const body = await req.json();
+    if (typeof body.inArchive !== "boolean") {
       return NextResponse.json(
-        { error: "No royalty found for this product" },
-        { status: 404 },
+        { error: "`inArchive` must be a boolean" },
+        { status: 400 },
       );
     }
 
-    // ✅ Archive instead of delete
-    const archivedRoyalty = await prisma.productRoyalty.update({
-      where: { id: royalty.id },
-      data: { inArchive: true, status: "archived" },
+    // Update royalty record
+    const updatedRoyalty = await prisma.productRoyalty.updateMany({
+      where: {
+        shopifyId: id,
+        shop,
+      },
+      data: {
+        inArchive: body.inArchive,
+        status: body.inArchive ? "archived" : "active",
+      },
     });
+    
 
     return NextResponse.json({
-      message: "Royalty archived successfully",
-      royalty: archivedRoyalty,
+      message: "Royalty status updated",
+      royalty: updatedRoyalty,
     });
   } catch (error: any) {
-    console.error("Error archiving royalty:", error);
+    console.error("Error toggling royalty:", error);
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 },

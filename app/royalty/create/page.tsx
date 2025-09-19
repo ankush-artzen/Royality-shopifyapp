@@ -45,6 +45,7 @@ export default function AssignRoyalty() {
 
   const dismissToast = () => setToastActive(false);
   const showToast = (msg: string, isError = false) => {
+    console.log("🔔 Toast:", msg, "Error?", isError);
     setToastContent(msg);
     setToastError(isError);
     setToastActive(true);
@@ -53,6 +54,7 @@ export default function AssignRoyalty() {
   // ✅ Step 1: Fetch shop info from App Bridge
   useEffect(() => {
     const shopFromConfig = (app as any)?.config?.shop;
+    console.log("🛍️ Shop from App Bridge config:", shopFromConfig);
     if (shopFromConfig) {
       setShop(shopFromConfig);
     } else {
@@ -63,11 +65,16 @@ export default function AssignRoyalty() {
   // Fetch billing status once shop is available
   useEffect(() => {
     if (!shop) return;
+    console.log("📡 Fetching billing status for shop:", shop);
 
     fetch(`/api/charges/status?shop=${shop}`)
       .then((res) => res.json())
-      .then((data) => setBillingActive(data.active))
-      .catch(() => {
+      .then((data) => {
+        console.log("💳 Billing status response:", data);
+        setBillingActive(data.active);
+      })
+      .catch((err) => {
+        console.error("❌ Billing status fetch failed:", err);
         setBillingActive(false);
         showToast("Failed to fetch billing status", true);
       });
@@ -86,20 +93,22 @@ export default function AssignRoyalty() {
       return;
     }
 
+    const payload = {
+      designerId: selectedDesigner,
+      productId: selectedProduct.id,
+      title: selectedProduct.title,
+      image: selectedProduct.image || null,
+      royality: numericRoyalty,
+      price: selectedProduct.price || 0,
+      shopifyId: selectedProduct.id,
+      currency: "",
+      storeCurrency: ""
+    };
+
+    console.log("📦 Payload before submit:", payload);
+
     setLoading(true);
     try {
-      const payload = {
-        designerId: selectedDesigner,
-        productId: selectedProduct.id,
-        title: selectedProduct.title,
-        image: selectedProduct.image || null,
-        royality: numericRoyalty,  // lowercase
-        price: selectedProduct.price || 0,
-        shopifyId: selectedProduct.id,
-        currency: "",
-        storeCurrency: ""
-    };
-    
       const res = await fetch(`/api/royality/product/create?shop=${shop}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,6 +116,7 @@ export default function AssignRoyalty() {
       });
 
       const data = await res.json();
+      console.log("✅ API response:", data);
 
       if (res.ok) {
         showToast("Royalty assigned successfully!");
@@ -118,6 +128,7 @@ export default function AssignRoyalty() {
         showToast(data.error || "Failed to assign royalty", true);
       }
     } catch (err: any) {
+      console.error("❌ API request failed:", err);
       showToast(err.message || "Network error", true);
     } finally {
       setLoading(false);
@@ -131,19 +142,24 @@ export default function AssignRoyalty() {
       return;
     }
 
+    console.log("📦 Opening product picker…");
     const pickerResult = await (app as any).resourcePicker({
       type: "product",
       multiple: false,
     });
 
+    console.log("📦 Picker result:", pickerResult);
+
     const product = pickerResult?.selection?.[0];
     if (product) {
-      setSelectedProduct({
+      const parsed = {
         id: product.id.split("/").pop(),
         title: product.title,
         image: product.images?.[0]?.originalSrc || "",
         price: product.variants?.[0]?.price || 0,
-      });
+      };
+      console.log("✅ Selected product:", parsed);
+      setSelectedProduct(parsed);
     } else {
       showToast("No product selected", true);
     }
@@ -151,6 +167,7 @@ export default function AssignRoyalty() {
 
   // ✅ Centered loader while fetching shop or billing
   if (!shop || billingActive === null) {
+    console.log("⏳ Waiting for shop or billing status…", { shop, billingActive });
     return (
       <Frame>
         <div
@@ -168,6 +185,7 @@ export default function AssignRoyalty() {
   }
 
   if (error) {
+    console.error("❌ Error:", error);
     return (
       <Frame>
         <Banner title="Error" tone="critical">
@@ -198,13 +216,10 @@ export default function AssignRoyalty() {
         }}
       >
         {billingActive === false && (
-          <Banner
-            title="Enable billing to assign royalties"
-            tone="critical"
-          >
+          <Banner title="Enable billing to assign royalties" tone="critical">
             <p>
-              You need an active subscription before assigning royalties to products. 
-              Please enable billing in your Shopify admin first.
+              You need an active subscription before assigning royalties to
+              products. Please enable billing in your Shopify admin first.
             </p>
           </Banner>
         )}

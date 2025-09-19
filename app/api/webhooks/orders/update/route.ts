@@ -37,9 +37,12 @@ export async function POST(req: NextRequest) {
     });
 
     // ✅ Only process paid & fulfilled orders
-    if (body.financial_status !== "paid" || body.fulfillment_status !== "fulfilled") {
+    if (
+      body.financial_status !== "paid" ||
+      body.fulfillment_status !== "fulfilled"
+    ) {
       console.log(
-        `⏸️ Skipping order ${orderId} → financial_status=${body.financial_status}, fulfillment_status=${body.fulfillment_status}`
+        `⏸️ Skipping order ${orderId} → financial_status=${body.financial_status}, fulfillment_status=${body.fulfillment_status}`,
       );
       return NextResponse.json({
         success: true,
@@ -63,13 +66,13 @@ export async function POST(req: NextRequest) {
     const allRoyalties = await prisma.productRoyalty.findMany({
       where: {
         shop,
+        inArchive: false,
         OR: [
           { shopifyId: { in: productIds } },
           { shopifyId: { in: productIdGids } },
         ],
       },
     });
-
     if (!allRoyalties.length) {
       return NextResponse.json({
         success: true,
@@ -94,7 +97,9 @@ export async function POST(req: NextRequest) {
       const productIdNumeric = item.product_id?.toString();
       if (!productIdNumeric) continue;
 
-      const royalties = royaltiesMap.get(productIdNumeric) || [];
+      const royalties = (royaltiesMap.get(productIdNumeric) || []).filter(
+        (r) => !r.inArchive,
+      );
       if (!royalties.length) continue;
 
       const quantity = Number(item.quantity) || 0;
@@ -129,6 +134,38 @@ export async function POST(req: NextRequest) {
         });
       }
     }
+    // 1️⃣ Convert to store currency if needed
+    // let storeRoyaltyAmount = royaltyAmount;
+    // if (currency !== storeCurrency) {
+    //   storeRoyaltyAmount = await convertCurrency(
+    //     royaltyAmount,
+    //     currency,
+    //     storeCurrency,
+    //   );
+    // }
+
+    // // 2️⃣ Convert to USD if storeCurrency is not USD
+    // const usdRoyaltyAmount =
+    //   storeCurrency === "USD"
+    //     ? storeRoyaltyAmount
+    //     : await convertCurrency(storeRoyaltyAmount, storeCurrency, "USD");
+
+    // // 3️⃣ Push line item with both store and USD amounts
+    // lineItemsToAdd.push({
+    //   productId: royalty.productId,
+    //   title: item.title,
+    //   variantId: item.variant_id?.toString() || "",
+    //   variantTitle: item.variant_title || "",
+    //   designerId: royalty.designerId,
+    //   productRoyaltyAmount: {
+    //     original: royaltyAmount,   // original order currency
+    //     store: storeRoyaltyAmount, // store currency
+    //     usd: usdRoyaltyAmount,     // USD
+    //   },
+    //   quantity,
+    //   unitPrice,
+    //   royaltyPercentage: royalty.royality,
+    // });
 
     if (!lineItemsToAdd.length) {
       return NextResponse.json({
@@ -147,7 +184,7 @@ export async function POST(req: NextRequest) {
             orderName,
             productId: li.productId,
             description: `Royalty payment for order ${orderName} - ${li.title}`,
-            price: li.productRoyaltyAmount.store, 
+            price: li.productRoyaltyAmount.store,
             currency: storeCurrency,
             royaltyPercentage: li.royaltyPercentage,
             designerId: li.designerId,
@@ -157,31 +194,39 @@ export async function POST(req: NextRequest) {
             error.message?.includes("already exists") ||
             error.message?.includes("Transaction already exists")
           ) {
-            console.log(`⚠️ Transaction already exists for ${li.title} → Skipping`);
+            console.log(
+              `⚠️ Transaction already exists for ${li.title} → Skipping`,
+            );
             return null;
           }
-          console.error(`❌ Error creating transaction for ${li.title}:`, error);
+          console.error(
+            `❌ Error creating transaction for ${li.title}:`,
+            error,
+          );
           throw error;
         }
-      })
+      }),
     );
 
     const failedTransactions = transactionResults.filter(
-      (r): r is PromiseRejectedResult => r.status === "rejected"
+      (r): r is PromiseRejectedResult => r.status === "rejected",
     );
 
     if (failedTransactions.length > 0) {
       console.warn(
-        `⚠️ ${failedTransactions.length} royalty transactions failed for order ${orderId}`
+        `⚠️ ${failedTransactions.length} royalty transactions failed for order ${orderId}`,
       );
       return NextResponse.json(
-        { success: false, message: `${failedTransactions.length} transactions failed` },
-        { status: 500 }
+        {
+          success: false,
+          message: `${failedTransactions.length} transactions failed`,
+        },
+        { status: 500 },
       );
     }
 
     console.log(
-      `✅ Order ${orderId} processed with ${lineItemsToAdd.length} royalty transactions`
+      `✅ Order ${orderId} processed with ${lineItemsToAdd.length} royalty transactions`,
     );
 
     return NextResponse.json({
@@ -196,7 +241,7 @@ export async function POST(req: NextRequest) {
         error: error.message || "Internal Server Error",
         message: "Failed to process order webhook",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

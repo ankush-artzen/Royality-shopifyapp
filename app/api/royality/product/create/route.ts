@@ -1,13 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma-connect";
 import { convertCurrency } from "@/lib/config/currency-utils";
+import { findSessionsByShop } from "@/lib/db/session-storage";
+
+const API_VERSION = "2025-07";
+async function getShopCurrency(shop: string) {
+  console.log("🔎 Fetching currency for shop:", shop);
+
+  const sessions = await findSessionsByShop(shop);
+  console.log("📦 Sessions fetched:", sessions);
+
+  const session = Array.isArray(sessions) ? sessions[0] : sessions;
+  if (!session?.accessToken) {
+    throw new Error("Missing session for shop: " + shop);
+  }
+
+  const resp = await fetch(
+    `https://${shop}/admin/api/${API_VERSION}/shop.json`,
+    {
+      headers: {
+        "X-Shopify-Access-Token": session.accessToken,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  console.log("🌐 Shopify API response status:", resp.status);
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("❌ Failed to fetch shop info:", errText);
+    throw new Error(`Failed to fetch shop info: ${resp.statusText}`);
+  }
+
+  const data = await resp.json();
+  console.log("📦 Shopify shop data:", data);
+
+  return data.shop.currency as string;
+}
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("📩 Incoming request URL:", req.url);
+
     const { searchParams } = new URL(req.url);
     const shop = searchParams.get("shop");
+    console.log("🔍 Shop from query:", shop);
 
     const body = await req.json();
+    console.log("📦 Request body:", body);
+
     const {
       designerId,
       productId,
@@ -18,11 +60,9 @@ export async function POST(req: NextRequest) {
       inArchive = "false",
       price = 0,
       shopifyId,
-      currency = "",
-      storeCurrency = "",
     } = body;
 
-    // 🔹 Basic validation
+    // ✅ Validation
     if (
       !shop ||
       !productId ||
@@ -31,6 +71,13 @@ export async function POST(req: NextRequest) {
       !title ||
       !designerId
     ) {
+      console.warn("⚠️ Validation failed:", {
+        shop,
+        productId,
+        royality,
+        title,
+        designerId,
+      });
       return NextResponse.json(
         {
           error:
@@ -40,9 +87,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🔹 Validate designerId format
+    // ✅ Designer ID format check
     const designerIdPattern = /^RA\d{9}$/;
     if (!designerIdPattern.test(designerId)) {
+      console.warn("⚠️ Invalid Designer ID format:", designerId);
       return NextResponse.json(
         {
           error: `Invalid Designer ID format: ${designerId}. Expected format: RA#########`,
@@ -51,13 +99,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🔹 Check if product is already assigned (only active)
+    // ✅ Product already assigned check
     const productAlreadyAssigned = await prisma.productRoyalty.findFirst({
-      where: {
-        productId,
-        inArchive: false, // boolean
-      },
+      where: { productId },
     });
+    console.log("🔎 Product already assigned?", productAlreadyAssigned);
 
     if (productAlreadyAssigned) {
       return NextResponse.json(
@@ -68,10 +114,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🔹 Check if this designer already has royalty for the product
+    // ✅ Existing royalty check
     const existingRoyalty = await prisma.productRoyalty.findFirst({
       where: { productId, designerId },
     });
+    console.log(
+      "🔎 Existing royalty for this designer/product?",
+      existingRoyalty,
+    );
+
     if (existingRoyalty) {
       return NextResponse.json(
         { error: "Royalty already assigned for this product & designer" },
@@ -79,22 +130,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 🔹 Convert price to storeCurrency
-    let originalAmount = parseFloat(price as any) || 0;
-    const fromCurrency = currency || "INR";
-    const toCurrency = storeCurrency || "USD";
+    // ✅ Get store currency from Shopify
+    const storeCurrency = await getShopCurrency(shop);
+    console.log("🏪 Store currency (from Shopify):", storeCurrency);
 
-    let convertedAmount =
-      fromCurrency === toCurrency
-        ? originalAmount
-        : await convertCurrency(originalAmount, fromCurrency, toCurrency);
+    // ✅ Conversion
+    const originalAmount = parseFloat(price as any) || 0;
+    const targetCurrency = "USD";
+
+    console.log("💰 Price conversion input:", {
+      originalAmount,
+      storeCurrency,
+      targetCurrency,
+    });
+
+    let convertedAmount: number;
+    if (storeCurrency === targetCurrency) {
+      convertedAmount = originalAmount;
+      console.log("💵 No conversion needed, using original:", convertedAmount);
+    } else {
+      convertedAmount = await convertCurrency(
+        originalAmount,
+        storeCurrency,
+        targetCurrency,
+      );
+      console.log("💵 Converted amount:", convertedAmount);
+    }
 
     convertedAmount = parseFloat(convertedAmount.toFixed(2));
+    console.log("💵 Final normalized amount (USD):", convertedAmount);
 
-    // 🔹 Convert inArchive string to boolean
+    // ✅ Archive flag
     const inArchiveBoolean = inArchive === "true";
+    console.log("📦 inArchive converted:", inArchiveBoolean);
 
-    // 🔹 Create product royalty
+    // ✅ Create record
+    console.log("🛠 Creating product royalty entry...");
     const royalty = await prisma.productRoyalty.create({
       data: {
         productId,
@@ -102,25 +173,27 @@ export async function POST(req: NextRequest) {
         title,
         image: image || null,
         status,
-        inArchive: inArchiveBoolean, // ✅ now boolean
+        inArchive: inArchiveBoolean,
         designerId,
         royality: parseFloat(royality),
         shop,
         price: {
-          amount: convertedAmount,
-          currency: toCurrency,
-          storeCurrency: fromCurrency,
-          storeAmount: originalAmount,
+          amount: convertedAmount, // 💵 normalized in USD
+          currency: targetCurrency, // "USD"
+          storeCurrency, // 🏪 actual shop currency
+          storeAmount: originalAmount, // original price in store currency
         },
       },
     });
+
+    console.log("✅ Royalty created successfully:", royalty);
 
     return NextResponse.json({
       message: "Royalty assigned successfully",
       royalty,
     });
   } catch (err: any) {
-    console.error("Error creating royalty:", err);
+    console.error("❌ Error creating royalty:", err.message, err.stack);
     return NextResponse.json(
       { error: "Something went wrong while assigning royalty." },
       { status: 500 },

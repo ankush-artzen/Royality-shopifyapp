@@ -85,19 +85,19 @@ export default function HomePage() {
   // Fetch transactions
   useEffect(() => {
     if (!shop || !billingApproved) return;
-  
+
     async function fetchLatestTransaction() {
       setLoadingTx(true);
       try {
         const res = await fetch(
-          `/api/royality/orders/transaction/balanceused?shop=${shop}`
+          `/api/royality/orders/transaction/balanceused?shop=${shop}`,
         );
         const data = await res.json();
-  
+
         if (res.ok && data.success) {
           // Latest transaction details
           setLatestTransaction(data.latestTransaction);
-  
+
           // Agar total balances bhi chahiye
           // setTotalBalanceUsed(data.totalBalanceUsed);
           // setTotalBalanceRemaining(data.totalBalanceRemaining);
@@ -108,10 +108,10 @@ export default function HomePage() {
         setLoadingTx(false);
       }
     }
-  
+
     fetchLatestTransaction();
   }, [shop, billingApproved]);
-  
+
   // Fetch capped amount
   useEffect(() => {
     if (!shop || !billingApproved) return;
@@ -230,12 +230,164 @@ export default function HomePage() {
           </Layout.Section>
 
           {/* Billing Status Card */}
+          {/* Transactions Section */}
           <Layout.Section>
             <Card>
               <BlockStack gap="400">
-                <Banner title="Royalty Billing Status" tone="info" />
+                <Banner title="Royalty Amount Status" tone="info" />
 
+                {loadingTx ? (
+                  // Loader State → 3 cards with spinners
+                  <BlockStack gap="200">
+                    <InlineStack align="start" blockAlign="center" gap="200">
+                      {[1, 2, 3].map((i) => (
+                        <Card key={i}>
+                          <Box minWidth="260px" minHeight="100px" padding="400">
+                            <InlineStack align="center" blockAlign="center">
+                              <Spinner
+                                accessibilityLabel="Loading balances"
+                                size="large"
+                              />
+                            </InlineStack>
+                          </Box>
+                        </Card>
+                      ))}
+                    </InlineStack>
+                  </BlockStack>
+                ) : (
+                  <BlockStack gap="200">
+                    <InlineStack align="start" blockAlign="center" gap="200">
+                      {/* Balance Used */}
+
+                      {/* Balance Used */}
+                      {/* Balance Used */}
+                      <Card>
+                        <Box minWidth="260px" minHeight="100px" padding="400">
+                          <Text as="h3" variant="headingXl" tone="subdued">
+                            Balance Used
+                          </Text>
+                          {latestTransaction ? (
+                            <>
+                              <Text
+                                as="h2"
+                                variant="headingMd"
+                                tone={
+                                  balanceUsedINR && balanceUsedINR > 0
+                                    ? "critical"
+                                    : "success"
+                                }
+                                fontWeight="bold"
+                              >
+                                {latestTransaction.balanceUsed?.toFixed(2)}{" "}
+                                {latestTransaction.currency}
+                              </Text>
+                              {latestTransaction.currency !== "USD" &&
+                                balanceUsedINR !== null && (
+                                  <Text
+                                    as="h2"
+                                    variant="headingSm"
+                                    tone="subdued"
+                                  >
+                                    ({balanceUsedINR.toFixed(2)} INR)
+                                  </Text>
+                                )}
+                            </>
+                          ) : (
+                            <Text as="p" tone="subdued">
+                              No Transaction available
+                            </Text>
+                          )}
+                        </Box>
+                      </Card>
+
+                      {/* Balance Remaining */}
+                      <Card>
+                        <Box minWidth="260px" minHeight="100px" padding="400">
+                          <Text as="h3" variant="headingXl" tone="subdued">
+                            Balance Remaining
+                          </Text>
+                          {latestTransaction ? (
+                            <>
+                              <Text
+                                as="h2"
+                                variant="headingMd"
+                                tone={
+                                  balanceRemainingINR && balanceRemainingINR > 0
+                                    ? "success"
+                                    : "subdued"
+                                }
+                                fontWeight="bold"
+                              >
+                                {latestTransaction.balanceRemaining?.toFixed(2)}{" "}
+                                {latestTransaction.currency}
+                              </Text>
+                              {latestTransaction.currency !== "USD" &&
+                                balanceRemainingINR !== null && (
+                                  <Text
+                                    as="h2"
+                                    variant="headingSm"
+                                    tone="subdued"
+                                  >
+                                    ({balanceRemainingINR.toFixed(2)} INR)
+                                  </Text>
+                                )}
+                            </>
+                          ) : (
+                            <Text as="p" tone="subdued">
+                              No Transaction available
+                            </Text>
+                          )}
+                        </Box>
+                      </Card>
+
+                      {/* Capped Amount */}
+                      <Card>
+                        <Box minWidth="260px" minHeight="100px" padding="400">
+                          <Text as="h3" variant="headingXl" tone="subdued">
+                            Capped Amount
+                          </Text>
+                          {cappedAmount ? (
+                            <>
+                              <Text
+                                as="h2"
+                                variant="headingMd"
+                                tone="subdued"
+                                fontWeight="bold"
+                              >
+                                {cappedAmount.toFixed(2)} {cappedCurrency}
+                              </Text>
+                              {cappedCurrency !== "USD" &&
+                                cappedAmountINR !== null && (
+                                  <Text
+                                    as="h2"
+                                    tone="subdued"
+                                    variant="headingSm"
+                                  >
+                                    ({cappedAmountINR.toFixed(2)} INR)
+                                  </Text>
+                                )}
+                            </>
+                          ) : (
+                            <Text as="p" tone="subdued">
+                              No Transaction available
+                            </Text>
+                          )}
+                        </Box>
+                      </Card>
+                    </InlineStack>
+                  </BlockStack>
+                )}
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+          {/* //current status */}
+
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
+                  <Banner title="Current Status" tone="info" />
+
                   {billingLoading ? (
                     <Spinner
                       accessibilityLabel="Checking billing"
@@ -243,100 +395,19 @@ export default function HomePage() {
                     />
                   ) : (
                     <Badge
-                      tone={billingApproved ? "success" : "attention"}
+                      tone={billingApproved ? "success" : "critical"}
                       size="large"
                     >
                       {billingApproved ? "Active" : "Inactive"}
                     </Badge>
                   )}
                 </InlineStack>
-                <Text as="p">
-                  Automatically track and distribute royalties to your
-                  designers.
-                </Text>
                 <Divider />
-
-                {/* Transactions */}
-                <Banner title="Royalty Amount Status" tone="info" />
-                {loadingTx ? (
-                  <Spinner accessibilityLabel="Loading balances" size="small" />
-                ) : latestTransaction ? (
-                  <BlockStack gap="200">
-                    <InlineStack align="start" blockAlign="center" gap="200">
-                      <Card>
-                        <Box minWidth="260px" minHeight="100px" padding="400">
-                          <Text as="h3" variant="headingXl" tone="subdued">
-                            Balance Used
-                          </Text>
-                          <Text
-                            as="h2"
-                            variant="headingMd"
-                            tone={
-                              balanceUsedINR && balanceUsedINR > 0
-                                ? "critical"
-                                : "success"
-                            }
-                            fontWeight="bold"
-                          >
-                            {balanceUsedINR !== null
-                              ? balanceUsedINR.toFixed(2)
-                              : "-"}{" "}
-                            INR
-                          </Text>
-                        </Box>
-                      </Card>
-
-                      <Card>
-                        <Box minWidth="260px" minHeight="100px" padding="400">
-                          <Text as="h3" variant="headingXl" tone="subdued">
-                            Balance Remaining
-                          </Text>
-                          <Text
-                            as="h2"
-                            variant="headingMd"
-                            tone={
-                              balanceRemainingINR && balanceRemainingINR > 0
-                                ? "success"
-                                : "subdued"
-                            }
-                            fontWeight="bold"
-                          >
-                            {balanceRemainingINR !== null
-                              ? balanceRemainingINR.toFixed(2)
-                              : "-"}{" "}
-                            INR
-                          </Text>
-                        </Box>
-                      </Card>
-
-                      <Card>
-                        <Box minWidth="260px" minHeight="100px" padding="400">
-                          <Text as="h3" variant="headingXl" tone="subdued">
-                            Capped Amount
-                          </Text>
-                          {cappedAmountINR ? (
-                            <Text
-                              as="h2"
-                              variant="headingMd"
-                              tone="subdued"
-                              fontWeight="bold"
-                            >
-                              {cappedAmountINR.toFixed(2)} INR
-                            </Text>
-                          ) : (
-                            <Text as="p" tone="subdued">
-                              Not available
-                            </Text>
-                          )}
-                        </Box>
-                      </Card>
-                    </InlineStack>
-                  </BlockStack>
-                ) : (
-                  <Text as="p" tone="subdued">
-                    No transactions available yet.
-                  </Text>
-                )}
+                <Text as="p">
+                  {billingApproved
+                    ? "Your royalty billing is currently active."
+                    : "Your royalty billing is not active. Please activate to continue."}
+                </Text>
               </BlockStack>
             </Card>
           </Layout.Section>

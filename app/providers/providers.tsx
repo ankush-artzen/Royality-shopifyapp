@@ -14,7 +14,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AppProvider i18n={translations}>
 
-      <ReduxProvider store={store}>  
+      <ReduxProvider store={store}>
 
       <TanstackProvider>
       <SessionProvider>{children}</SessionProvider>

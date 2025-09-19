@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
         const allRoyalties = await tx.productRoyalty.findMany({
           where: {
             shop,
+            inArchive: false,
             OR: [
               { shopifyId: { in: productIds } },
               { shopifyId: { in: productIdGids } },
@@ -92,9 +93,14 @@ export async function POST(req: NextRequest) {
         // Process line items
         for (const item of body.line_items) {
           const productId = item.product_id?.toString();
+
           if (!productId) continue;
 
-          const royalties = royaltiesMap.get(productId) || [];
+          // const royalties = royaltiesMap.get(productId) || [];
+          // if (!royalties.length) continue;
+          const royalties = (royaltiesMap.get(productId) || []).filter(
+            (r) => !r.inArchive,
+          );
           if (!royalties.length) continue;
 
           const quantity = item.quantity;
@@ -162,11 +168,15 @@ export async function POST(req: NextRequest) {
             }) || { amount: 0, currency: storeCurrency, usdAmount: 0 };
 
             // Convert current royalty to USD
-            const usdAmount = await convertCurrency(
-              update.amount,
-              storeCurrency,
-              "USD",
-            );
+            // const usdAmount = await convertCurrency(
+            //   update.amount,
+            //   storeCurrency,
+            //   "USD",
+            // );
+            const usdAmount =
+              storeCurrency === "USD"
+                ? update.amount
+                : await convertCurrency(update.amount, storeCurrency, "USD");
 
             const newTotal = {
               amount: prev.amount + update.amount,
@@ -307,4 +317,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

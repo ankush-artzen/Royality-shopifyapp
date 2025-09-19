@@ -12,7 +12,12 @@ import {
   Toast,
   InlineStack,
 } from "@shopify/polaris";
-import { EditIcon, DeleteIcon, ViewIcon } from "@shopify/polaris-icons";
+import {
+  EditIcon,
+  ToggleOffIcon,
+  ToggleOnIcon,
+  ViewIcon,
+} from "@shopify/polaris-icons";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { useRouter } from "next/navigation";
 import EditRoyaltyModal from "../components/editroyality";
@@ -36,6 +41,7 @@ interface Royalty {
     storeCurrency: string; // original currency
     storeAmount: number; // original amount
   } | null;
+  inArchive?: boolean;
 }
 
 interface ApiResponse {
@@ -64,7 +70,6 @@ export default function RoyaltiesPage() {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
-
   const showToast = (message: string, error: boolean = false) => {
     setToastMessage(message);
     setToastError(error);
@@ -107,22 +112,31 @@ export default function RoyaltiesPage() {
     if (shop) fetchRoyalties(page);
   }, [shop, page, fetchRoyalties]);
 
-  const handleDelete = async () => {
-    if (!shop || !deleteTarget) return;
+  const handleToggleArchive = async (royalty: Royalty, newState: boolean) => {
+    if (!shop) return;
     setDeleteLoading(true);
 
     try {
       const res = await fetch(
-        `/api/royality/product/${deleteTarget.shopifyId}/delete?shop=${shop}`,
-        { method: "DELETE" },
+        `/api/royality/product/${royalty.shopifyId}/toggle?shop=${shop}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inArchive: newState }),
+        },
       );
+
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to delete royalty");
+        throw new Error(errorData.error || "Failed to update royalty status");
       }
+
       await fetchRoyalties(page);
-      showToast("Royalty deleted successfully");
-      setDeleteTarget(null);
+      showToast(
+        newState
+          ? "Royalty archived (Switch Off)"
+          : "Royalty reactivated (Switch On)",
+      );
     } catch (err) {
       showToast(
         err instanceof Error ? err.message : "Something went wrong",
@@ -178,29 +192,29 @@ export default function RoyaltiesPage() {
         {royalty.title}
       </div>
     </InlineStack>,
-  
+
     <Badge key={`royalty-${royalty.id}`} tone="success">
       {`${royalty.Royality ?? 0}%`}
     </Badge>,
-  
+
     <Text key={`price-${royalty.id}`} as="h2">
       {royalty.price ? (
         <>
-          {/* Show only store currency amount */}
-          {royalty.price.storeAmount.toFixed(2)} {royalty.price.storeCurrency}
-  
-          {/*
+          {/* Always show normalized USD amount */}
           {royalty.price.amount.toFixed(2)} {royalty.price.currency}{" "}
-          <Text as="span" tone="subdued">
-            ({royalty.price.storeAmount.toFixed(2)} {royalty.price.storeCurrency})
-          </Text>
-          */}
+          {/* Show store amount only if storeCurrency is INR */}
+          {royalty.price.storeCurrency === "INR" && (
+            <Text as="span" tone="subdued">
+              ({royalty.price.storeAmount.toFixed(2)}{" "}
+              {royalty.price.storeCurrency})
+            </Text>
+          )}
         </>
       ) : (
         "—"
       )}
     </Text>,
-  
+
     <InlineStack key={`actions-${royalty.id}`} align="start" gap="400">
       <Tooltip content="Edit Royalty">
         <Button
@@ -209,14 +223,18 @@ export default function RoyaltiesPage() {
           onClick={() => setActiveEdit(royalty)}
         />
       </Tooltip>
-      <Tooltip content="Delete Royalty">
+      {/* Switch Button inside DataTable rows */}
+      <Tooltip content={royalty.inArchive ? "Switch Off" : "Switch On"}>
         <Button
           size="slim"
-          tone="critical"
-          icon={DeleteIcon}
+          tone={royalty.inArchive ? "critical" : "success"}
+          icon={royalty.inArchive ? ToggleOffIcon : ToggleOnIcon}
           onClick={() => setDeleteTarget(royalty)}
-        />
+        >
+          {royalty.inArchive ? "Off" : "On"}
+        </Button>
       </Tooltip>
+
       <Tooltip content="View Product in Shopify Admin">
         <Button
           size="slim"
@@ -231,12 +249,12 @@ export default function RoyaltiesPage() {
       </Tooltip>
     </InlineStack>,
   ]);
-  
 
   return (
     <Frame>
       <Page
         title="Product Royalties"
+        subtitle="Assign royalties to your Products"
         backAction={{ content: "Back", onAction: () => router.back() }}
         primaryAction={{
           content: "Create Royalty Products",
@@ -260,18 +278,28 @@ export default function RoyaltiesPage() {
           />
         )}
 
-        {deleteTarget && (
-          <DeleteConfirmationModal
-            open
-            onClose={() => setDeleteTarget(null)}
-            onConfirm={handleDelete}
-            loading={deleteLoading}
-            title="Delete Royalty?"
-            message={`Are you sure you want to delete "${deleteTarget.title}"? This action cannot be undone.`}
-            confirmText="Delete"
-            cancelText="Cancel"
-          />
-        )}
+        <DeleteConfirmationModal
+          open={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            if (deleteTarget) {
+              await handleToggleArchive(deleteTarget, !deleteTarget.inArchive);
+              setDeleteTarget(null);
+            }
+          }}
+          loading={deleteLoading}
+          title={
+            deleteTarget?.inArchive
+              ? "Currently Product is Disable"
+              : "Currently Product is Enable"
+          }
+          message={`Are you sure you want to ${
+            deleteTarget?.inArchive ? "Switch On" : "Switch Off"
+          } "${deleteTarget?.title}"?`}
+          confirmText="Confirm"
+          cancelText="Cancel"
+          actionType={deleteTarget?.inArchive ? "switchOn" : "switchOff"}
+        />
 
         {toastMessage && (
           <Toast
