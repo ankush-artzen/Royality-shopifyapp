@@ -260,7 +260,6 @@ export default function HomePage() {
                       {/* Balance Used */}
 
                       {/* Balance Used */}
-                      {/* Balance Used */}
                       <Card>
                         <Box minWidth="260px" minHeight="100px" padding="400">
                           <Text as="h3" variant="headingXl" tone="subdued">
@@ -281,8 +280,8 @@ export default function HomePage() {
                                 {latestTransaction.balanceUsed?.toFixed(2)}{" "}
                                 {latestTransaction.currency}
                               </Text>
-                              {latestTransaction.currency !== "USD" &&
-                                balanceUsedINR !== null && (
+                              {balanceUsedINR !== null &&
+                                latestTransaction.currency !== "INR" && (
                                   <Text
                                     as="h2"
                                     variant="headingSm"
@@ -321,14 +320,14 @@ export default function HomePage() {
                                 {latestTransaction.balanceRemaining?.toFixed(2)}{" "}
                                 {latestTransaction.currency}
                               </Text>
-                              {latestTransaction.currency !== "USD" &&
-                                balanceRemainingINR !== null && (
+                              {balanceRemainingINR !== null &&
+                                latestTransaction.currency !== "INR" && (
                                   <Text
                                     as="h2"
-                                    variant="headingSm"
                                     tone="subdued"
+                                    variant="headingSm"
                                   >
-                                    ({balanceRemainingINR.toFixed(2)} INR)
+                                    ( {balanceRemainingINR.toFixed(2)} INR)
                                   </Text>
                                 )}
                             </>
@@ -356,14 +355,14 @@ export default function HomePage() {
                               >
                                 {cappedAmount.toFixed(2)} {cappedCurrency}
                               </Text>
-                              {cappedCurrency !== "USD" &&
-                                cappedAmountINR !== null && (
+                              {cappedAmountINR !== null &&
+                                cappedCurrency !== "INR" && (
                                   <Text
                                     as="h2"
                                     tone="subdued"
                                     variant="headingSm"
                                   >
-                                    ({cappedAmountINR.toFixed(2)} INR)
+                                    ( {cappedAmountINR.toFixed(2)} INR)
                                   </Text>
                                 )}
                             </>
@@ -425,3 +424,4 @@ export default function HomePage() {
     </Frame>
   );
 }
+
