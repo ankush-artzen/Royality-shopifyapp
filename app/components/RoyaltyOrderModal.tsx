@@ -9,60 +9,13 @@ import {
   Text,
   Badge,
   Divider,
-  List,
   Box,
 } from "@shopify/polaris";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "@/app/components/redux/store";
-import { fetchExchangeRate } from "@/app/components/redux/currencySlice";
+import { RootState } from "@/app/redux/store";
+import { fetchExchangeRate } from "@/app/redux/currencySlice";
 import { useEffect } from "react";
 
-interface LineItem {
-  productId: string;
-  title: string;
-  variantId: string;
-  variantTitle?: string;
-  designerId: string;
-  royality: number;
-  amount: number;
-  quantity: number;
-  unitPrice: number;
-  royaltyPercentage: number;
-  royaltyCharges: number;
-}
-
-interface Transaction {
-  id: string;
-  shop: string;
-  shopifyTransactionChargeId: string;
-  orderId: string;
-  productId?: string;
-  description: string;
-  price: {
-    storeprice: number;
-    storeCurrency: string;
-    usd: number;
-  };
-  currency: string; // USD
-  balanceUsed: number;
-  balanceRemaining: number;
-  royaltyPercentage: number;
-  designerId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface RoyaltyOrder {
-  id: string;
-  orderName: string;
-  orderId: string;
-  currency: string;
-  createdAt?: string;
-  calculatedRoyaltyAmount: number;
-  convertedCurrencyAmountRoyality: number;
-  lineItem: LineItem[];
-  transactions?: Transaction[];
-}
 
 interface OrderModalProps {
   order: RoyaltyOrder;
@@ -102,32 +55,48 @@ const OrderModal: React.FC<OrderModalProps> = ({
 
   const renderProductRow = (product: LineItem) => (
     <Box paddingBlock="200">
-      <InlineStack align="space-between" blockAlign="center">
+      <InlineStack align="start" blockAlign="center">
         <Text as="h3" variant="headingMd">
           {product.title || "Unknown Product"}
         </Text>
       </InlineStack>
 
       <Box paddingBlockStart="100">
-        <InlineStack gap="400">
-          <Text as="span" tone="subdued">
-            Qty: {product.quantity}
-          </Text>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "150px 1fr", // labels | values
+            rowGap: "16px", // equal spacing between rows
+            columnGap: "24px",
+            alignItems: "center",
+          }}
+        >
           {product.variantTitle && (
-            <Text as="span" tone="subdued">
-              Variant: {product.variantTitle}
-            </Text>
+            <>
+              <Text as="span" tone="subdued">
+                Variant:
+              </Text>
+              <Text as="span">{product.variantTitle}</Text>
+            </>
           )}
+
           <Text as="span" tone="subdued">
-            Unit Price: {product.unitPrice.toFixed(2)} {order.currency}
+            Qty:
+          </Text>
+          <Text as="span">{product.quantity}</Text>
+
+          <Text as="span" tone="subdued">
+            Unit Price:
+          </Text>
+          <Text as="span">
+            {product.unitPrice.toFixed(2)} {order.currency}
           </Text>
 
-          {/* // Uncomment if you want original currency info */}
-          {/* <Text as="span" tone="subdued">
-            Original Price: {product.amount.toFixed(2)} {product.currency}
+          <Text as="span" tone="subdued">
+            Royalty %:
           </Text>
-          */}
-        </InlineStack>
+          <Text as="span">{product.royaltyPercentage}%</Text>
+        </div>
       </Box>
     </Box>
   );
@@ -226,12 +195,12 @@ const OrderModal: React.FC<OrderModalProps> = ({
               </Text>
               <Text as="span" fontWeight="bold" variant="headingMd">
                 USD {order.convertedCurrencyAmountRoyality.toFixed(2)}{" "}
-                {order.currency === "INR" && (
+                {/* {order.currency === "INR" && (
                   <>
                     ({order.calculatedRoyaltyAmount.toFixed(2)} {order.currency}
                     )
                   </>
-                )}
+                )} */}
               </Text>
             </InlineStack>
 
@@ -304,36 +273,50 @@ const OrderModal: React.FC<OrderModalProps> = ({
                         {product.title || "Unknown Product"}
                       </Text>
 
-                      <BlockStack gap="100">
-                        {product.variants.map((v, i) => (
-                          <Box key={i} padding="200">
-                            <InlineStack gap="600" blockAlign="center">
-                              <Text as="span" tone="subdued">
-                                <strong>Variant:</strong> {v.variantTitle}
-                              </Text>
-                              <Text as="span" tone="subdued">
-                                <strong>Qty:</strong> {v.quantity}
-                              </Text>
-                              <Text as="span" tone="subdued">
-                                <strong>Unit Price:</strong>{" "}
-                                {rates[`${order.currency}-USD`]
-                                  ? (
-                                      v.unitPrice *
-                                      rates[`${order.currency}-USD`]
-                                    ).toFixed(2)
-                                  : "—"}{" "}
-                                 ({v.unitPrice.toFixed(2)} {order.currency})
-                              </Text>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 80px 140px 100px",
+                          gap: "16px",
+                          alignItems: "center",
+                        }}
+                      >
+                        {/* Header */}
+                        <Text as="span" tone="subdued" fontWeight="semibold">
+                          Variant
+                        </Text>
+                        <Text as="span" tone="subdued" fontWeight="semibold">
+                          Qty
+                        </Text>
+                        <Text as="span" tone="subdued" fontWeight="semibold">
+                          Unit Price
+                        </Text>
+                        <Text as="span" tone="subdued" fontWeight="semibold">
+                          Royalty %
+                        </Text>
 
-                              <Badge tone="info">
-                                {typeof v.royaltyPercentage === "number"
-                                  ? v.royaltyPercentage.toFixed(2) + "%"
-                                  : "-"}
-                              </Badge>
-                            </InlineStack>
-                          </Box>
+                        {/* Data rows */}
+                        {product.variants.map((v, i) => (
+                          <React.Fragment key={i}>
+                            <Text as="span" fontWeight="medium">
+                              {v.variantTitle}
+                            </Text>
+                            <Text as="span">{v.quantity}</Text>
+                            <Text as="span">
+                              {rates[`${order.currency}-USD`]
+                                ? (
+                                    v.unitPrice * rates[`${order.currency}-USD`]
+                                  ).toFixed(2) + " USD"
+                                : "—"}
+                            </Text>
+                            <Badge tone="info">
+                              {typeof v.royaltyPercentage === "number"
+                                ? v.royaltyPercentage.toFixed(2) + "%"
+                                : "-"}
+                            </Badge>
+                          </React.Fragment>
                         ))}
-                      </BlockStack>
+                      </div>
                     </BlockStack>
                   </Card>
                 ))}
@@ -384,12 +367,12 @@ const OrderModal: React.FC<OrderModalProps> = ({
                         </Text>
                         <Text as="span" fontWeight="bold" variant="headingMd">
                           {tx.currency} {tx.price.usd.toFixed(2)}{" "}
-                          {tx.price.storeCurrency === "INR" && (
+                          {/* {tx.price.storeCurrency === "INR" && (
                             <>
                               ({tx.price.storeprice.toFixed(2)}{" "}
                               {tx.price.storeCurrency})
                             </>
-                          )}
+                          )} */}
                         </Text>
                       </InlineStack>
 

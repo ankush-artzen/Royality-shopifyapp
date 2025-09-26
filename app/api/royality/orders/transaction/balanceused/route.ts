@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma-connect";
 
+export const dynamic = "force-dynamic";
+
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -38,7 +41,7 @@ export async function GET(req: NextRequest) {
       totalBalanceUsed,
       totalBalanceRemaining,
       latestTransaction,
-      transactions, // optional: sab transactions agar frontend me show karna ho
+      transactions, // sab transactions agar frontend me show karna ho
     });
   } catch (error: any) {
     console.error("Error fetching transactions:", error);

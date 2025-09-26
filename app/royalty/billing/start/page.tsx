@@ -1,22 +1,6 @@
 "use client";
-
 import { useState, useEffect } from "react";
-import {
-  Page,
-  Card,
-  Banner,
-  Text,
-  Button,
-  BlockStack,
-  InlineStack,
-  Layout,
-  Spinner,
-  Frame,
-  Divider,
-  Badge,
-  List,
-  Box,
-} from "@shopify/polaris";
+import { Page, Banner, Layout, Frame } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
 import { useAppBridge } from "@shopify/app-bridge-react";
 
@@ -26,6 +10,11 @@ import { ROYALTY_PLAN } from "@/lib/config/royaltyConfig";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchExchangeRate } from "@/app/components/redux/currencySlice";
 import { RootState, AppDispatch } from "@/app/components/redux/store";
+
+// Components
+import BillingBanner from "@/app/components/billing/BillingBanner";
+import BalanceCards from "@/app/components/billing/Balancecards";
+import StatusCard from "@/app/components/billing/CurrentStatus";
 
 export default function HomePage() {
   const router = useRouter();
@@ -45,9 +34,12 @@ export default function HomePage() {
 
   const dispatch = useDispatch<AppDispatch>();
   const { rates } = useSelector((state: RootState) => state.currency);
+  const [shopCurrency, setShopCurrency] = useState<string | null>(null);
 
   const exchangeRateKey = cappedCurrency ? `${cappedCurrency}-INR` : null;
   const exchangeRate = exchangeRateKey ? rates[exchangeRateKey] : null;
+  const balanceUsed = latestTransaction?.balanceUsed || 0;
+
 
   const convertToINR = (amount: number | null, currency: string | null) => {
     if (!amount || !currency) return null;
@@ -56,6 +48,26 @@ export default function HomePage() {
     const rate = rates[key];
     return rate ? amount * rate : null;
   };
+
+  // Fetch shop currency
+  useEffect(() => {
+    if (!shop) return;
+
+    async function fetchShopCurrency() {
+      try {
+        const res = await fetch(`/api/royality/counts?shop=${shop}`);
+        const data = await res.json();
+        if (res.ok) {
+          setShopCurrency(data.shopCurrency || "USD");
+        }
+      } catch (err) {
+        console.error("Error fetching shop currency:", err);
+        setShopCurrency(" ");
+      }
+    }
+
+    fetchShopCurrency();
+  }, [shop]);
 
   // Get shop from App Bridge
   useEffect(() => {
@@ -95,12 +107,7 @@ export default function HomePage() {
         const data = await res.json();
 
         if (res.ok && data.success) {
-          // Latest transaction details
           setLatestTransaction(data.latestTransaction);
-
-          // Agar total balances bhi chahiye
-          // setTotalBalanceUsed(data.totalBalanceUsed);
-          // setTotalBalanceRemaining(data.totalBalanceRemaining);
         }
       } catch (err) {
         console.error(err);
@@ -172,6 +179,7 @@ export default function HomePage() {
   return (
     <Frame>
       <Page
+      fullWidth
         title="Royalty Billing"
         subtitle="Track and distribute royalties to your designers"
         backAction={{ content: "Back", onAction: () => router.back() }}
@@ -179,236 +187,36 @@ export default function HomePage() {
         <Layout>
           {/* Billing Banner */}
           <Layout.Section>
-            {billingLoading ? (
-              <Banner title="Royalty Payments" tone="info">
-                <BlockStack gap="300" align="center">
-                  <Spinner
-                    accessibilityLabel="Checking billing status"
-                    size="small"
-                  />
-                  <Text as="p">Checking billing status...</Text>
-                </BlockStack>
-              </Banner>
-            ) : (
-              <Banner
-                title="Royalty Payments"
-                tone={billingApproved ? "info" : "critical"}
-              >
-                <BlockStack gap="300">
-                  <Text as="p">
-                    Royalty billing allows you to automatically calculate and
-                    charge usage-based royalties.
-                  </Text>
-                  <List>
-                    <List.Item>
-                      Keep royalty payments up to date without manual tracking
-                    </List.Item>
-                    <List.Item>
-                      View transaction data after orders are placed
-                    </List.Item>
-                    <List.Item>
-                      Automatically distribute payments to designers
-                    </List.Item>
-                  </List>
-                  <InlineStack align="start">
-                    <Button
-                      variant="primary"
-                      disabled={
-                        creatingPlan || billingLoading || billingApproved
-                      }
-                      loading={creatingPlan}
-                      onClick={startRoyaltyPlan}
-                    >
-                      {billingApproved
-                        ? "Billing Enabled"
-                        : "Enable Royalty Billing"}
-                    </Button>
-                  </InlineStack>
-                </BlockStack>
-              </Banner>
-            )}
+            <BillingBanner
+              billingLoading={billingLoading}
+              billingApproved={billingApproved}
+              creatingPlan={creatingPlan}
+              startRoyaltyPlan={startRoyaltyPlan}
+              balanceUsed={balanceUsed}
+              cappedAmount={cappedAmount}
+            />
           </Layout.Section>
 
-          {/* Billing Status Card */}
           {/* Transactions Section */}
           <Layout.Section>
-            <Card>
-              <BlockStack gap="400">
-                <Banner title="Royalty Amount Status" tone="info" />
-
-                {/* Loader comes first inside the Card */}
-                {loadingTx && (
-                  <BlockStack gap="200">
-                    <InlineStack align="start" blockAlign="center" gap="200">
-                      {[1, 2, 3].map((i) => (
-                        <Card key={i}>
-                          <Box minWidth="260px" minHeight="100px" padding="400">
-                            <InlineStack align="center" blockAlign="center">
-                              <Spinner
-                                accessibilityLabel={`Loading balance ${i}`}
-                                size="large"
-                              />
-                            </InlineStack>
-                          </Box>
-                        </Card>
-                      ))}
-                    </InlineStack>
-                  </BlockStack>
-                )}
-
-                {/* Normal balance cards */}
-                <BlockStack gap="200">
-                  <InlineStack align="start" blockAlign="center" gap="200">
-                    {/* Balance Used */}
-                    <Card>
-                      <Box minWidth="260px" minHeight="100px" padding="400">
-                        <Text as="h3" variant="headingXl" tone="subdued">
-                          Balance Used
-                        </Text>
-                        {latestTransaction ? (
-                          <>
-                            <Text
-                              as="h2"
-                              variant="headingMd"
-                              tone={
-                                balanceUsedINR && balanceUsedINR > 0
-                                  ? "critical"
-                                  : "success"
-                              }
-                              fontWeight="bold"
-                            >
-                              {latestTransaction.balanceUsed?.toFixed(2)}{" "}
-                              {latestTransaction.currency}
-                            </Text>
-                            {balanceUsedINR !== null &&
-                              latestTransaction.currency !== "INR" && (
-                                <Text
-                                  as="h2"
-                                  variant="headingSm"
-                                  tone="subdued"
-                                >
-                                  ({balanceUsedINR.toFixed(2)} INR)
-                                </Text>
-                              )}
-                          </>
-                        ) : (
-                          <Text as="p" tone="subdued">
-                            No Transaction available
-                          </Text>
-                        )}
-                      </Box>
-                    </Card>
-
-                    {/* Balance Remaining */}
-                    <Card>
-                      <Box minWidth="260px" minHeight="100px" padding="400">
-                        <Text as="h3" variant="headingXl" tone="subdued">
-                          Balance Remaining
-                        </Text>
-                        {latestTransaction ? (
-                          <>
-                            <Text
-                              as="h2"
-                              variant="headingMd"
-                              tone={
-                                balanceRemainingINR && balanceRemainingINR > 0
-                                  ? "success"
-                                  : "subdued"
-                              }
-                              fontWeight="bold"
-                            >
-                              {latestTransaction.balanceRemaining?.toFixed(2)}{" "}
-                              {latestTransaction.currency}
-                            </Text>
-                            {balanceRemainingINR !== null &&
-                              latestTransaction.currency !== "INR" && (
-                                <Text
-                                  as="h2"
-                                  tone="subdued"
-                                  variant="headingSm"
-                                >
-                                  ({balanceRemainingINR.toFixed(2)} INR)
-                                </Text>
-                              )}
-                          </>
-                        ) : (
-                          <Text as="p" tone="subdued">
-                            No Transaction available
-                          </Text>
-                        )}
-                      </Box>
-                    </Card>
-
-                    {/* Capped Amount */}
-                    <Card>
-                      <Box minWidth="260px" minHeight="100px" padding="400">
-                        <Text as="h3" variant="headingXl" tone="subdued">
-                          Capped Amount
-                        </Text>
-                        {cappedAmount ? (
-                          <>
-                            <Text
-                              as="h2"
-                              variant="headingMd"
-                              tone="subdued"
-                              fontWeight="bold"
-                            >
-                              {cappedAmount.toFixed(2)} {cappedCurrency}
-                            </Text>
-                            {cappedAmountINR !== null &&
-                              cappedCurrency !== "INR" && (
-                                <Text
-                                  as="h2"
-                                  tone="subdued"
-                                  variant="headingSm"
-                                >
-                                  ({cappedAmountINR.toFixed(2)} INR)
-                                </Text>
-                              )}
-                          </>
-                        ) : (
-                          <Text as="p" tone="subdued">
-                            No Transaction available
-                          </Text>
-                        )}
-                      </Box>
-                    </Card>
-                  </InlineStack>
-                </BlockStack>
-              </BlockStack>
-            </Card>
+            <BalanceCards
+              loadingTx={loadingTx}
+              latestTransaction={latestTransaction}
+              shopCurrency={shopCurrency}
+              balanceUsedINR={balanceUsedINR}
+              balanceRemainingINR={balanceRemainingINR}
+              cappedAmount={cappedAmount}
+              cappedCurrency={cappedCurrency}
+              cappedAmountINR={cappedAmountINR}
+            />
           </Layout.Section>
 
-          {/* //current status */}
-
+          {/* Current Status */}
           <Layout.Section>
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Banner title="Current Status" tone="info" />
-
-                  {billingLoading ? (
-                    <Spinner
-                      accessibilityLabel="Checking billing"
-                      size="small"
-                    />
-                  ) : (
-                    <Badge
-                      tone={billingApproved ? "success" : "critical"}
-                      size="large"
-                    >
-                      {billingApproved ? "Active" : "Inactive"}
-                    </Badge>
-                  )}
-                </InlineStack>
-                <Divider />
-                <Text as="p">
-                  {billingApproved
-                    ? "Your royalty billing is currently active."
-                    : "Your royalty billing is not active. Please activate to continue."}
-                </Text>
-              </BlockStack>
-            </Card>
+            <StatusCard
+              billingLoading={billingLoading}
+              billingApproved={billingApproved}
+            />
           </Layout.Section>
 
           {/* Errors */}
@@ -424,4 +232,3 @@ export default function HomePage() {
     </Frame>
   );
 }
-

@@ -14,6 +14,9 @@ import {
 import { useRouter } from "next/navigation";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import ActionCard from "@/app/components/ActionCard";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "@/app/redux/store";
+import { fetchExchangeRate } from "@/app/redux/currencySlice";
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,9 +30,32 @@ export default function HomePage() {
   const [productCount, setProductCount] = useState<number>(0);
   const [totalRoyaltyAmount, settotalRoyaltyAmount] = useState<number>(0);
   const [totalOrders, settotalOrders] = useState<number>(0);
-  const [totalConvertedRoyalty, setTotalConvertedRoyalty] = useState<number>(0);
-  const [latestCurrency, setLatestCurrency] = useState<string>("USD");
-  const [shopCurrency, setShopCurrency] = useState<string>(" ");
+  const [shopCurrency, setShopCurrency] = useState<string>("USD");
+
+  const dispatch = useDispatch<AppDispatch>();
+  const currencyState = useSelector((state: RootState) => state.currency);
+
+  // Compute displayed royalties
+  const displayedRoyalties = (() => {
+    if (loading) return "";
+
+    // USD store → display as USD
+    if (shopCurrency === "USD") return `${totalRoyaltyAmount.toFixed(2)} USD`;
+
+    // INR store → convert to USD
+    if (shopCurrency === "INR") {
+      const key = "INR-USD";
+      const rate = currencyState.rates ? currencyState.rates[key] : null;
+      if (rate) {
+        const converted = totalRoyaltyAmount * rate;
+        return `${converted.toFixed(2)} USD`;
+      }
+      return "Loading...";
+    }
+
+    // Other currencies → fallback display
+    return `${totalRoyaltyAmount.toFixed(2)} ${shopCurrency}`;
+  })();
 
   // Get shop from App Bridge
   useEffect(() => {
@@ -37,6 +63,13 @@ export default function HomePage() {
     if (shopFromConfig) setShop(shopFromConfig);
     else setError("Unable to retrieve shop info from App Bridge config");
   }, [app]);
+
+  // Fetch exchange rate only for INR
+  useEffect(() => {
+    if (shopCurrency === "INR") {
+      dispatch(fetchExchangeRate({ from: "INR", to: "USD" }));
+    }
+  }, [shopCurrency, dispatch]);
 
   // Fetch all stats
   useEffect(() => {
@@ -50,17 +83,17 @@ export default function HomePage() {
         // Get shop currency
         const resShop = await fetch(`/api/royality/counts?shop=${shop}`);
         const dataShop = await resShop.json();
-        setShopCurrency(dataShop.shopCurrency || " ");
+        setShopCurrency(dataShop.shopCurrency || "USD");
 
-        // Get product counts + total converted royalty
+        // Get product counts
         const resCounts = await fetch(`/api/royality/counts?shop=${shop}`);
         const dataCounts = await resCounts.json();
         if (!resCounts.ok)
           throw new Error(
             dataCounts?.error || "Failed fetching product counts",
           );
+
         setProductCount(dataCounts.totalProducts || 0);
-        setTotalConvertedRoyalty(dataCounts.totalConvertedRoyalty || 0);
 
         // Get total royalties + orders
         const resTotals = await fetch(
@@ -71,6 +104,7 @@ export default function HomePage() {
           throw new Error(
             dataTotals?.error || "Failed fetching royalty totals",
           );
+
         settotalRoyaltyAmount(dataTotals.totalRoyaltyAmount || 0);
         settotalOrders(dataTotals.totalOrders || 0);
       } catch (err: any) {
@@ -80,7 +114,6 @@ export default function HomePage() {
         setProductCount(0);
         settotalRoyaltyAmount(0);
         settotalOrders(0);
-        setTotalConvertedRoyalty(0);
         setShopCurrency("USD");
       } finally {
         setLoading(false);
@@ -91,31 +124,14 @@ export default function HomePage() {
   }, [shop]);
 
   return (
-    <Page>
+    <Page title="Royalty App Dashboard" subtitle="Enhance your sale">
       <Layout>
         {/* Hero Section */}
         <Layout.Section>
-          <Card padding="400">
-            <BlockStack gap="400" align="center">
-              <Text
-                variant="heading2xl"
-                as="h1"
-                tone="magic"
-                alignment="center"
-              >
-                Welcome to Royalty App
-              </Text>
-              <Text
-                as="p"
-                variant="bodyLg"
-                tone="magic-subdued"
-                alignment="center"
-              >
-                Effortlessly manage products, assign royalties, and track
-                performance
-              </Text>
-            </BlockStack>
-          </Card>
+          <Banner title="Welcome to Royalty App" tone="info">
+            Effortlessly manage products, assign royalties, and track
+            performance
+          </Banner>
         </Layout.Section>
 
         {/* Error Banner */}
@@ -131,7 +147,12 @@ export default function HomePage() {
         <Layout.Section>
           <Card>
             <BlockStack gap="400">
-              <Text as="h3" variant="headingLg" fontWeight="semibold">
+              <Text
+                as="h3"
+                variant="headingLg"
+                tone="subdued"
+                fontWeight="semibold"
+              >
                 Quick Actions
               </Text>
               <div
@@ -167,9 +188,14 @@ export default function HomePage() {
 
         {/* Quick Insights */}
         <Layout.Section>
-          <Card>
+          <Card padding="400">
             <BlockStack gap="400">
-              <Text as="h2" fontWeight="bold" variant="headingLg">
+              <Text
+                as="h2"
+                fontWeight="bold"
+                tone="subdued"
+                variant="headingLg"
+              >
                 Quick Insights
               </Text>
               <div
@@ -187,12 +213,8 @@ export default function HomePage() {
                 />
                 <ActionCard
                   title="Total Royalties"
-                  value={
-                    loading
-                      ? ""
-                      : `${totalRoyaltyAmount.toFixed(2)} ${shopCurrency}`
-                  }
-                  loading={loading}
+                  value={displayedRoyalties}
+                  loading={loading || currencyState.loading}
                 />
                 <ActionCard
                   title="Total Orders"
@@ -206,12 +228,9 @@ export default function HomePage() {
 
         {/* About Us */}
         <Layout.Section>
-          <Card>
-            <Text as="h2" fontWeight="bold" variant="headingLg">
-              About Us
-            </Text>
+          <Banner title="About us" tone="info">
             <BlockStack gap="200" align="center">
-              <Text as="h2" variant="bodyLg" tone="magic-subdued">
+              <Text as="h2" variant="bodyLg" tone="subdued">
                 A royalty management system that tracks and calculates payments
                 owed to creators. Collect sales data, aggregate earnings, and
                 ensure timely distribution with ease.
@@ -219,13 +238,13 @@ export default function HomePage() {
               <InlineStack>
                 <Button
                   onClick={() => router.push("/royalty/create")}
-                  variant="secondary"
+                  variant="primary"
                 >
                   Get Started
                 </Button>
               </InlineStack>
             </BlockStack>
-          </Card>
+          </Banner>
         </Layout.Section>
       </Layout>
     </Page>
