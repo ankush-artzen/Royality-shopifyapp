@@ -25,7 +25,7 @@ import { FALLBACK_IMAGE } from "@/lib/config/royaltyConfig";
 
 import { ProductCell } from "@/app/components/analytics/RoyaltyTable";
 
-import {PAGE_SIZE} from "@/lib/constants/constants"
+import { PAGE_SIZE } from "@/lib/constants/constants";
 
 export default function ProductRoyaltyFromOrdersPage() {
   const app = useAppBridge();
@@ -42,16 +42,17 @@ export default function ProductRoyaltyFromOrdersPage() {
   const [queryValue, setQueryValue] = useState("");
   const [appliedFilters, setAppliedFilters] = useState<any[]>([]);
   const [sortKey, setSortKey] =
-    useState<keyof ApiResponsesold ["products"][0]>("totalRoyalty");
+    useState<keyof ApiResponsesold["products"][0]>("totalRoyalty");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const formatCurrency = useCallback(
     (value: number, currency?: string | null) =>
-      new Intl.NumberFormat(undefined, {
+      new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: currency ?? "USD",
+        currencyDisplay: "code",
         maximumFractionDigits: 2,
       }).format(value),
     [],
@@ -155,15 +156,15 @@ export default function ProductRoyaltyFromOrdersPage() {
 
         return [
           <ProductCell product={product} key={`${product.productId}-cell`} />,
-          <Badge key={`${product.productId}-units`} tone="success">
+          <Text as="span" key={`${product.productId}-units`} tone="success">
             {product.unitSold.toLocaleString()}
-          </Badge>,
+          </Text>,
 
           <Text
             as="span"
             key={`${product.productId}-sale`}
             fontWeight="bold"
-            tone="success"
+            // tone="success"
           >
             <CurrencyDisplay amount={product.totalSale} currency={currency} />
           </Text>,
@@ -171,7 +172,6 @@ export default function ProductRoyaltyFromOrdersPage() {
             as="span"
             key={`${product.productId}-royalty`}
             fontWeight="bold"
-            tone="critical"
           >
             <CurrencyDisplay
               amount={product.totalRoyalty}
@@ -182,7 +182,6 @@ export default function ProductRoyaltyFromOrdersPage() {
             as="span"
             key={`${product.productId}-percentage`}
             fontWeight="bold"
-            tone="magic"
           >
             {(product.royaltyPercentage ?? 0).toFixed(2)}%
           </Text>,
@@ -190,7 +189,7 @@ export default function ProductRoyaltyFromOrdersPage() {
             as="span"
             key={`${product.productId}-last30`}
             fontWeight="bold"
-            tone="success"
+            // tone="success"
           >
             <CurrencyDisplay
               amount={product.last30DaysRoyalty}

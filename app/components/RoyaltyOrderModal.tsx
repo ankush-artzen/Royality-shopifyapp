@@ -15,7 +15,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/app/redux/store";
 import { fetchExchangeRate } from "@/app/redux/currencySlice";
 import { useEffect } from "react";
-
+import { useShopCurrency } from "@/app/hooks/shopCurrency";
 
 interface OrderModalProps {
   order: RoyaltyOrder;
@@ -32,8 +32,12 @@ const OrderModal: React.FC<OrderModalProps> = ({
   onClose,
   loading = false,
 }) => {
+  // reconstruct shop domain
+  const shop = storeName + ".myshopify.com";
   const dispatch = useDispatch();
   const rates = useSelector((state: RootState) => state.currency.rates);
+  const { currency: shopCurrency, loading: currencyLoading } =
+    useShopCurrency(shop);
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleString();
@@ -194,13 +198,9 @@ const OrderModal: React.FC<OrderModalProps> = ({
                 Total Royalty Amount
               </Text>
               <Text as="span" fontWeight="bold" variant="headingMd">
-                USD {order.convertedCurrencyAmountRoyality.toFixed(2)}{" "}
-                {/* {order.currency === "INR" && (
-                  <>
-                    ({order.calculatedRoyaltyAmount.toFixed(2)} {order.currency}
-                    )
-                  </>
-                )} */}
+                {currencyLoading
+                  ? "Loading..."
+                  : `${shopCurrency} ${order.convertedCurrencyAmountRoyality.toFixed(2)}`}
               </Text>
             </InlineStack>
 
@@ -303,17 +303,16 @@ const OrderModal: React.FC<OrderModalProps> = ({
                             </Text>
                             <Text as="span">{v.quantity}</Text>
                             <Text as="span">
-                              {rates[`${order.currency}-USD`]
-                                ? (
-                                    v.unitPrice * rates[`${order.currency}-USD`]
-                                  ).toFixed(2) + " USD"
-                                : "—"}
+                              {currencyLoading
+                                ? "Loading..."
+                                : `${shopCurrency} ${(v.unitPrice * (rates[`${order.currency}-USD`] || 1)).toFixed(2)}`}
                             </Text>
-                            <Badge tone="info">
+
+                            <Text as="span">
                               {typeof v.royaltyPercentage === "number"
                                 ? v.royaltyPercentage.toFixed(2) + "%"
                                 : "-"}
-                            </Badge>
+                            </Text>
                           </React.Fragment>
                         ))}
                       </div>
@@ -366,13 +365,9 @@ const OrderModal: React.FC<OrderModalProps> = ({
                           Royalty Price
                         </Text>
                         <Text as="span" fontWeight="bold" variant="headingMd">
-                          {tx.currency} {tx.price.usd.toFixed(2)}{" "}
-                          {/* {tx.price.storeCurrency === "INR" && (
-                            <>
-                              ({tx.price.storeprice.toFixed(2)}{" "}
-                              {tx.price.storeCurrency})
-                            </>
-                          )} */}
+                          {currencyLoading
+                            ? "Loading..."
+                            : `${shopCurrency} ${tx.price.usd.toFixed(2)}`}
                         </Text>
                       </InlineStack>
 

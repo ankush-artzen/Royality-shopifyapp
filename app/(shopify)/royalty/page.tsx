@@ -25,6 +25,7 @@ import DeleteConfirmationModal from "../../components/dialog";
 import Pagination from "../../components/Pagination";
 import CustomDataTable from "../../components/CustomDataTable";
 import { defaultImage } from "@/lib/config/royaltyConfig";
+import { useShopCurrency } from "@/app/hooks/shopCurrency";
 
 export default function RoyaltiesPage() {
   const app = useAppBridge();
@@ -42,7 +43,8 @@ export default function RoyaltiesPage() {
   const [activeEdit, setActiveEdit] = useState<Royalty | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Royalty | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
+  const { currency: shopCurrency, loading: currencyLoading } =
+    useShopCurrency(shop);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
   const showToast = (message: string, error: boolean = false) => {
@@ -176,28 +178,42 @@ export default function RoyaltiesPage() {
           {royalty.title}
         </div>
       </InlineStack>,
+      <Text key={`price-${royalty.id}`} as="h2" alignment="start">
+        {currencyLoading
+          ? "Loading..."
+          : royalty.price
+            ? `${shopCurrency} ${royalty.price.amount.toFixed(2)}`
+            : "—"}
+      </Text>,
 
-      <Badge key={`royalty-${royalty.id}`} tone="success">
+      <Text as="h2" key={`royalty-${royalty.id}`}>
         {`${royalty.Royality ?? 0}%`}
-      </Badge>,
+      </Text>,
       <Text key={`price-${royalty.id}`} as="h2" alignment="start">
         {royalty.price
-          ? `${royalty.price.amount.toFixed(2)} ${royalty.price.currency}`
+          ? `${royalty.price.currency} ${royalty.price.amount.toFixed(2)} `
           : "—"}
       </Text>,
 
-      <Text
-        key={`expiry-${royalty.id}`}
-        as="h2"
-        fontWeight="bold"
-        tone={isExpired ? "critical" : "success"}
-      >
-        {expiryDate
-          ? `${expiryDate.toLocaleDateString()} ${expiryDate.toLocaleTimeString()}`
-          : "—"}
-        {isExpired && <br />}
-        {isExpired && "(Expired)"}
+      <Text key={`expiry-${royalty.id}`} as="h2" fontWeight="bold">
+        {/* Expiry date always in success */}
+        <Text as="span" tone="success">
+          {expiryDate
+            ? `${expiryDate.toLocaleDateString()} ${expiryDate.toLocaleTimeString()}`
+            : "—"}
+        </Text>
+
+        {/* If expired, show (Expired) in red */}
+        {isExpired && (
+          <>
+            <br />
+            <Text as="span" tone="critical">
+              (Expired)
+            </Text>
+          </>
+        )}
       </Text>,
+
       <InlineStack key={`actions-${royalty.id}`} blockAlign="center" gap="400">
         <Tooltip content="Edit Royalty">
           <Button

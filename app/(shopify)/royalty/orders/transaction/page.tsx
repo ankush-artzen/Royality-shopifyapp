@@ -23,6 +23,7 @@ import {
   TransactionIcon,
   InfoIcon,
 } from "@shopify/polaris-icons";
+import { useShopCurrency } from "@/app/hooks/shopCurrency";
 
 export default function RoyaltyTransactionsPage() {
   const app = useAppBridge();
@@ -36,6 +37,9 @@ export default function RoyaltyTransactionsPage() {
   const [page, setPage] = useState(1);
   const limit = 10;
   const [totalPages, setTotalPages] = useState(1);
+
+  const { currency: shopCurrency, loading: currencyLoading } =
+    useShopCurrency(shop);
 
   const [summary, setSummary] = useState<SummaryResponse>({
     totalTransactions: 0,
@@ -116,7 +120,9 @@ export default function RoyaltyTransactionsPage() {
     </Badge>,
     <Box key={`${tx.id}-price`}>
       <Text as="span" fontWeight="bold" tone="success">
-        ${tx.price.usd.toFixed(2)}
+        {currencyLoading
+          ? "Loading..."
+          : `${shopCurrency} ${tx.price.usd.toFixed(2)}`}
       </Text>
     </Box>,
     <Text as="span" key={`${tx.id}-royalty`} fontWeight="bold" tone="subdued">
@@ -145,8 +151,8 @@ export default function RoyaltyTransactionsPage() {
   return (
     <Page
       title="Royalty Transactions"
-      fullWidth
       backAction={{ content: "Back", onAction: () => router.back() }}
+      fullWidth
     >
       {/* Error Banner */}
       {error && (
@@ -261,4 +267,3 @@ export default function RoyaltyTransactionsPage() {
     </Page>
   );
 }
-

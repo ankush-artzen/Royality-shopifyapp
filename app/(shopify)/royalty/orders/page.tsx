@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import CustomDataTable from "@/app/components/CustomDataTable";
 import OrderModal from "@/app/components/RoyaltyOrderModal";
 import Pagination from "@/app/components/Pagination";
-
+import { useShopCurrency } from "@/app/hooks/shopCurrency";
 export default function RoyaltiesPage() {
   const [orders, setOrders] = useState<RoyaltyOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +21,8 @@ export default function RoyaltiesPage() {
   const [totalOrders, setTotalOrders] = useState<number>(0);
   const [modalActive, setModalActive] = useState<boolean>(false);
   const [modalLoading, setModalLoading] = useState<boolean>(false);
+  const { currency: shopCurrency, loading: currencyLoading } =
+    useShopCurrency(shop);
 
   const app = useAppBridge();
   const router = useRouter();
@@ -119,14 +121,10 @@ export default function RoyaltiesPage() {
                 </div>
               </InlineStack>,
 
-              <span key={`royalty1-${order.orderId}`}>
-                {order.convertedCurrencyAmountRoyality.toFixed(2)} USD{" "}
-                {/* {order.currency === "INR" && (
-                  <>
-                    ({order.calculatedRoyaltyAmount.toFixed(2)} {order.currency}
-                    )
-                  </>
-                )} */}
+              <span key={`royalty-${order.orderId}`}>
+                {currencyLoading
+                  ? "Loading..."
+                  : `${shopCurrency} ${order.convertedCurrencyAmountRoyality.toFixed(2)}`}
               </span>,
               // <span key={`royalty2-${order.orderId}`}>
               //   {order.convertedCurrencyAmountRoyality.toFixed(2)} USD
@@ -139,25 +137,24 @@ export default function RoyaltiesPage() {
             ];
           }),
           // TOTAL row
-          [
-            <strong key="total-label">TOTAL</strong>,
-            "",
-            <strong key="total-royalty">
-              {totalConvertedRoyalty.toFixed(2)} USD
-              {/* {totalCurrency === "INR" && `(${totalRoyalty.toFixed(2)} INR)`} */}
-            </strong>,
-            "", // empty for "Created At"
-          ],
-
-          // `${totalConvertedRoyalty.toFixed(2)} USD`,
+          // [
+          //   <strong key="total-label">TOTAL</strong>,
+          //   "",
+          //   <strong key="total-royalty">
+          //     {currencyLoading
+          //       ? "Loading..."
+          //       : `${shopCurrency} ${totalConvertedRoyalty.toFixed(2)}`}
+          //   </strong>,
+          //   "",
+          // ],
         ]
       : [];
 
   return (
     <Page
       title="Royalties Per Order"
-      fullWidth
       backAction={{ content: "Back", onAction: () => router.back() }}
+      fullWidth
     >
       <CustomDataTable
         columns={["Order Name", "Order ID", "Royalty Amount", "Created At"]}
