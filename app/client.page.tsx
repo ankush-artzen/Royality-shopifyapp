@@ -124,7 +124,7 @@ export default function HomePage() {
   }, [shop]);
 
   return (
-    <Page title="Royalty App Dashboard" subtitle="Enhance your sale">
+    <Page title="Royalty App Dashboard" subtitle="Enhance your sale" fullWidth>
       <Layout>
         {/* Hero Section */}
         <Layout.Section>

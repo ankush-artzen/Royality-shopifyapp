@@ -239,6 +239,7 @@ export default function RoyaltiesPage() {
       <Page
         title="Product Royalties"
         subtitle="Assign royalties to your Products"
+        fullWidth
         backAction={{ content: "Back", onAction: () => router.back() }}
         primaryAction={{
           content: "Create Royalty Products",

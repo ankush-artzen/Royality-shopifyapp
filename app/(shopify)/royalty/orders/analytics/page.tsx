@@ -205,6 +205,7 @@ export default function ProductRoyaltyFromOrdersPage() {
   return (
     <Page
       title="Product Royalty Report"
+      fullWidth
       primaryAction={
         <InlineStack gap="200">
           <Tooltip content="Export filtered rows to CSV">

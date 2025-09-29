@@ -200,6 +200,7 @@ export default function AssignRoyalty() {
       <Page
         title="Assign Royalty"
         backAction={{ content: "Back", onAction: () => router.back() }}
+        fullWidth
         primaryAction={{
           content: "Save",
           onAction: handleSubmit,

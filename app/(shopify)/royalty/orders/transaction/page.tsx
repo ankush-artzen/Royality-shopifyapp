@@ -145,6 +145,7 @@ export default function RoyaltyTransactionsPage() {
   return (
     <Page
       title="Royalty Transactions"
+      fullWidth
       backAction={{ content: "Back", onAction: () => router.back() }}
     >
       {/* Error Banner */}

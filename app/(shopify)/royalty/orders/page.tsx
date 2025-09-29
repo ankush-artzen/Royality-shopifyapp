@@ -156,6 +156,7 @@ export default function RoyaltiesPage() {
   return (
     <Page
       title="Royalties Per Order"
+      fullWidth
       backAction={{ content: "Back", onAction: () => router.back() }}
     >
       <CustomDataTable
