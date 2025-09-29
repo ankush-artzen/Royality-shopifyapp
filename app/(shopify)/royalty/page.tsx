@@ -25,7 +25,6 @@ import DeleteConfirmationModal from "../../components/dialog";
 import Pagination from "../../components/Pagination";
 import CustomDataTable from "../../components/CustomDataTable";
 import { defaultImage } from "@/lib/config/royaltyConfig";
-import { useShopCurrency } from "@/app/hooks/shopCurrency";
 
 export default function RoyaltiesPage() {
   const app = useAppBridge();
@@ -43,8 +42,7 @@ export default function RoyaltiesPage() {
   const [activeEdit, setActiveEdit] = useState<Royalty | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Royalty | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const { currency: shopCurrency, loading: currencyLoading } =
-    useShopCurrency(shop);
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
   const showToast = (message: string, error: boolean = false) => {
@@ -178,13 +176,6 @@ export default function RoyaltiesPage() {
           {royalty.title}
         </div>
       </InlineStack>,
-      <Text key={`price-${royalty.id}`} as="h2" alignment="start">
-        {currencyLoading
-          ? "Loading..."
-          : royalty.price
-            ? `${shopCurrency} ${royalty.price.amount.toFixed(2)}`
-            : "—"}
-      </Text>,
 
       <Text as="h2" key={`royalty-${royalty.id}`}>
         {`${royalty.Royality ?? 0}%`}
