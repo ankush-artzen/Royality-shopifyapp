@@ -13,6 +13,7 @@ import {
   Banner,
   Badge,
   BlockStack,
+  Spinner,
 } from "@shopify/polaris";
 import { useRouter } from "next/navigation";
 import CustomDataTable from "@/app/components/CustomDataTable";
@@ -156,58 +157,79 @@ export default function RoyaltyTransactionsPage() {
       )}
 
       {/* Summary Cards */}
-      {!loading && transactions.length > 0 && (
-        <div style={{ marginBottom: "20px" }}>
-          <InlineGrid columns="1fr 1fr 1fr" gap="400">
-            <Card padding="400">
-              <div style={{ textAlign: "center" }}>
-                <Icon source={TransactionIcon} tone="base" />
-                <Text as="h3" variant="headingMd" fontWeight="bold">
-                  {summary.totalTransactions.toLocaleString()}
-                </Text>
-                <Text as="p" tone="subdued" fontWeight="bold">
-                  Total Transactions
-                </Text>
-                
-              </div>
-            </Card>
+      <div style={{ marginBottom: "20px" }}>
+        <InlineGrid columns="1fr 1fr 1fr" gap="400">
+          {/* Total Transactions */}
+          <Card padding="400">
+            <div style={{ textAlign: "center" }}>
+              {loading ? (
+                <Spinner
+                  accessibilityLabel="Loading transactions"
+                  size="large"
+                />
+              ) : (
+                <>
+                  <Icon source={TransactionIcon} tone="base" />
+                  <Text as="h3" variant="headingMd" fontWeight="bold">
+                    {summary.totalTransactions.toLocaleString()}
+                  </Text>
+                  <Text as="p" tone="subdued" fontWeight="bold">
+                    Total Transactions
+                  </Text>
+                </>
+              )}
+            </div>
+          </Card>
 
-            <Card padding="400">
-              <div style={{ textAlign: "center" }}>
-                <Icon source={CashDollarIcon} tone="success" />
-                <Text
-                  as="h3"
-                  variant="headingMd"
-                  fontWeight="bold"
-                  tone="success"
-                >
-                  {summary.totalRevenue.toFixed(2)}
-                </Text>
-                <Text as="p" tone="subdued" fontWeight="bold">
-                  Total Revenue
-                </Text>
-              </div>
-            </Card>
+          {/* Total Revenue */}
+          <Card padding="400">
+            <div style={{ textAlign: "center" }}>
+              {loading ? (
+                <Spinner accessibilityLabel="Loading revenue" size="large" />
+              ) : (
+                <>
+                  <Icon source={CashDollarIcon} tone="success" />
+                  <Text
+                    as="h3"
+                    variant="headingMd"
+                    fontWeight="bold"
+                    tone="success"
+                  >
+                    {summary.totalRevenue.toFixed(2)}
+                  </Text>
+                  <Text as="p" tone="subdued" fontWeight="bold">
+                    Total Revenue
+                  </Text>
+                </>
+              )}
+            </div>
+          </Card>
 
-            <Card padding="400">
-              <div style={{ textAlign: "center" }}>
-                <Icon source={InfoIcon} />
-                <Text
-                  as="h3"
-                  variant="headingMd"
-                  fontWeight="bold"
-                  tone="success"
-                >
-                  {summary.avgRoyalty.toFixed(1)}%
-                </Text>
-                <Text as="p" tone="subdued" fontWeight="bold">
-                  Avg Royalty
-                </Text>
-              </div>
-            </Card>
-          </InlineGrid>
-        </div>
-      )}
+          {/* Avg Royalty */}
+          <Card padding="400">
+            <div style={{ textAlign: "center" }}>
+              {loading ? (
+                <Spinner accessibilityLabel="Loading royalty" size="large" />
+              ) : (
+                <>
+                  <Icon source={InfoIcon} />
+                  <Text
+                    as="h3"
+                    variant="headingMd"
+                    fontWeight="bold"
+                    tone="success"
+                  >
+                    {summary.avgRoyalty.toFixed(1)}%
+                  </Text>
+                  <Text as="p" tone="subdued" fontWeight="bold">
+                    Avg Royalty
+                  </Text>
+                </>
+              )}
+            </div>
+          </Card>
+        </InlineGrid>
+      </div>
 
       {/* Data Table */}
       <CustomDataTable
@@ -238,3 +260,4 @@ export default function RoyaltyTransactionsPage() {
     </Page>
   );
 }
+
