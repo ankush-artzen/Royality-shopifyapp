@@ -17,6 +17,7 @@ import {
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { useRouter } from "next/navigation";
 import Pagination from "@/app/components/Pagination";
+import { useBillingStatus } from "@/app/hooks/useBillingStatus";
 
 import { RefreshIcon, ExportIcon, SearchIcon } from "@shopify/polaris-icons";
 import { exportRoyaltyCSV } from "@/app/components/analytics/CSVExporter";
@@ -46,6 +47,13 @@ export default function ProductRoyaltyFromOrdersPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { approved: billingApproved, loading: billingLoading } =
+    useBillingStatus();
+  useEffect(() => {
+    if (!billingLoading && billingApproved === false) {
+      router.replace("/royalty/billing"); //send to billing
+    }
+  }, [billingLoading, billingApproved, router]);
 
   const formatCurrency = useCallback(
     (value: number, currency?: string | null) =>
@@ -156,7 +164,12 @@ export default function ProductRoyaltyFromOrdersPage() {
 
         return [
           <ProductCell product={product} key={`${product.productId}-cell`} />,
-          <Text as="span" key={`${product.productId}-units`} tone="success">
+          <Text
+            as="span"
+            key={`${product.productId}-units`}
+            tone="success"
+            fontWeight="semibold"
+          >
             {product.unitSold.toLocaleString()}
           </Text>,
 

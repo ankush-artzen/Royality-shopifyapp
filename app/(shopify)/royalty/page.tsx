@@ -25,6 +25,7 @@ import DeleteConfirmationModal from "../../components/dialog";
 import Pagination from "../../components/Pagination";
 import CustomDataTable from "../../components/CustomDataTable";
 import { defaultImage } from "@/lib/config/royaltyConfig";
+import moment from "moment";
 
 export default function RoyaltiesPage() {
   const app = useAppBridge();
@@ -180,7 +181,12 @@ export default function RoyaltiesPage() {
       <Text as="h2" key={`royalty-${royalty.id}`}>
         {`${royalty.Royality ?? 0}%`}
       </Text>,
-      <Text key={`price-${royalty.id}`} as="h2" alignment="start">
+      <Text
+        key={`price-${royalty.id}`}
+        as="h2"
+        alignment="start"
+        fontWeight="bold"
+      >
         {royalty.price
           ? `${royalty.price.currency} ${royalty.price.amount.toFixed(2)} `
           : "—"}
@@ -188,10 +194,9 @@ export default function RoyaltiesPage() {
 
       <Text key={`expiry-${royalty.id}`} as="h2" fontWeight="bold">
         {/* Expiry date always in success */}
+
         <Text as="span" tone="success">
-          {expiryDate
-            ? `${expiryDate.toLocaleDateString()} ${expiryDate.toLocaleTimeString()}`
-            : "—"}
+          {expiryDate ? moment(expiryDate).format("lll") : "—"}
         </Text>
 
         {/* If expired, show (Expired) in red */}
@@ -269,7 +274,7 @@ export default function RoyaltiesPage() {
 
         {activeEdit && (
           <EditRoyaltyModal
-            open={true} // always boolean
+            open={true}
             royalty={activeEdit}
             onClose={() => setActiveEdit(null)}
             onUpdate={handleUpdate}

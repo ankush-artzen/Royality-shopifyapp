@@ -17,6 +17,7 @@ import ActionCard from "@/app/components/ActionCard";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/app/redux/store";
 import { fetchExchangeRate } from "@/app/redux/currencySlice";
+import { useBillingStatus } from "@/app/hooks/useBillingStatus";
 
 export default function HomePage() {
   const router = useRouter();
@@ -34,6 +35,13 @@ export default function HomePage() {
 
   const dispatch = useDispatch<AppDispatch>();
   const currencyState = useSelector((state: RootState) => state.currency);
+  const { approved: billingApproved, loading: billingLoading } =
+    useBillingStatus();
+  useEffect(() => {
+    if (!billingLoading && billingApproved === false) {
+      router.replace("/royalty/billing"); // force send to billing
+    }
+  }, [billingLoading, billingApproved, router]);
 
   // Compute displayed royalties
   const displayedRoyalties = (() => {
