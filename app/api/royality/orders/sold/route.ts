@@ -28,17 +28,38 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const pageSize = Math.max(1, parseInt(searchParams.get("pageSize") || "10"));
 
-    if (!shop) return NextResponse.json({ error: "Missing shop parameter" }, { status: 400 });
+    if (!shop) {
+      return NextResponse.json({ error: "Missing shop parameter" }, { status: 400 });
+    }
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+    // Build common match stages
+    const baseMatch: any[] = [{ $match: { shop } }];
+
+    if (query) {
+      baseMatch.push(
+        { $unwind: "$lineItem" },
+        {
+          $match: {
+            $or: [
+              { "lineItem.title": { $regex: query, $options: "i" } },
+              { "lineItem.productId": { $regex: query, $options: "i" } },
+              { "lineItem.variantTitle": { $regex: query, $options: "i" } },
+            ],
+          },
+        }
+      );
+    } else {
+      baseMatch.push({ $unwind: "$lineItem" });
+    }
+
     // ------------------------
-    // Step 1: Count total products (for pagination)
+    // Step 1: Count total products (filtered)
     // ------------------------
     const totalCountPipeline: any[] = [
-      { $match: { shop } },
-      { $unwind: "$lineItem" },
+      ...baseMatch,
       {
         $group: {
           _id: { productId: "$lineItem.productId", variantId: "$lineItem.variantId" },
@@ -52,29 +73,14 @@ export async function GET(req: NextRequest) {
       pipeline: totalCountPipeline,
       cursor: {},
     });
+
     const totalProducts = totalResult.cursor?.firstBatch?.[0]?.total ?? 0;
 
     // ------------------------
-    // Step 2: Aggregate products with DB-side pagination
+    // Step 2: Aggregate with pagination (same filter)
     // ------------------------
     const pipeline: any[] = [
-      { $match: { shop } },
-      { $unwind: "$lineItem" },
-    ];
-
-    if (query) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { "lineItem.title": { $regex: query, $options: "i" } },
-            { "lineItem.productId": { $regex: query, $options: "i" } },
-            { "lineItem.variantTitle": { $regex: query, $options: "i" } },
-          ],
-        },
-      });
-    }
-
-    pipeline.push(
+      ...baseMatch,
       {
         $group: {
           _id: { productId: "$lineItem.productId", variantId: "$lineItem.variantId" },
@@ -87,15 +93,21 @@ export async function GET(req: NextRequest) {
           totalRoyalty: { $sum: "$lineItem.productRoyaltyAmount" },
           royaltyPercentage: { $avg: "$lineItem.royaltyPercentage" },
           last30DaysRoyalty: {
-            $sum: { $cond: [{ $gte: ["$createdAt", thirtyDaysAgo] }, "$lineItem.productRoyaltyAmount", 0] },
+            $sum: {
+              $cond: [
+                { $gte: ["$createdAt", thirtyDaysAgo] },
+                "$lineItem.productRoyaltyAmount",
+                0,
+              ],
+            },
           },
           currency: { $first: "$currency" },
         },
       },
       { $sort: { [sortKey]: sortDir === "asc" ? 1 : -1 } },
       { $skip: (page - 1) * pageSize },
-      { $limit: pageSize }
-    );
+      { $limit: pageSize },
+    ];
 
     const rawProducts: LineItemStat[] = await prisma.$runCommandRaw({
       aggregate: "RoyaltyOrder",
@@ -125,9 +137,6 @@ export async function GET(req: NextRequest) {
 
     const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
 
-    // ------------------------
-    // Step 4: Return response
-    // ------------------------
     return NextResponse.json({
       shop,
       products,
