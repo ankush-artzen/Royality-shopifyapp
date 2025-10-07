@@ -106,20 +106,21 @@ export default function HomePage() {
   // Update displayed royalties when amounts or rates change
   useEffect(() => {
     if (loading) return;
-
+  
     if (shopCurrency === "USD") {
-      setDisplayedRoyalties(`${totalRoyaltyAmount.toFixed(2)} USD`);
+      setDisplayedRoyalties(`USD ${totalRoyaltyAmount.toFixed(2)}`);
     } else if (shopCurrency === "INR") {
       const rate = currencyState.rates?.["INR-USD"];
       if (rate) {
-        setDisplayedRoyalties(`${(totalRoyaltyAmount * rate).toFixed(2)} USD`);
+        setDisplayedRoyalties(`USD ${(totalRoyaltyAmount * rate).toFixed(2)}`);
       } else {
         setDisplayedRoyalties("Loading...");
       }
     } else {
-      setDisplayedRoyalties(`${totalRoyaltyAmount.toFixed(2)} ${shopCurrency}`);
+      setDisplayedRoyalties(`${shopCurrency} ${totalRoyaltyAmount.toFixed(2)}`);
     }
   }, [shopCurrency, totalRoyaltyAmount, currencyState.rates, loading]);
+  
 
   return (
     <Page title="Royalty App Dashboard" subtitle="Enhance your sale" fullWidth>
@@ -226,3 +227,4 @@ export default function HomePage() {
     </Page>
   );
 }
+
