@@ -12,17 +12,16 @@ const BalanceCards = ({
   loadingTx,
   latestTransaction,
   shopCurrency,
-  balanceUsedINR,
-  balanceRemainingINR,
+  balanceUsedINR, // optional — not used anymore
+  balanceRemainingINR, // optional — not used anymore
   cappedAmount,
   cappedCurrency,
-  cappedAmountINR,
+  cappedAmountINR, // optional — not used anymore
 }: BalanceCardsProps) => {
   const renderBalanceCard = (
     title: string,
     value: number | null | undefined,
     currency: string | null | undefined,
-    convertedValue: number | null,
     tone: "critical" | "success" | "subdued",
   ) => {
     if (!latestTransaction) {
@@ -33,35 +32,14 @@ const BalanceCards = ({
       );
     }
 
-    if (shopCurrency === "USD") {
-      return (
-        <Text as="h2" variant="headingMd" tone={tone} fontWeight="bold">
-          {value?.toFixed(2)} {currency}
-        </Text>
-      );
-    } else if (shopCurrency === "INR") {
-      return (
-        <>
-          <Text as="h2" variant="headingMd" tone={tone} fontWeight="bold">
-            {convertedValue?.toFixed(2)}
-          </Text>
-          {currency !== "INR" && (
-            <Text as="h2" variant="headingSm" tone="subdued">
-              ({value?.toFixed(2)} {currency})
-            </Text>
-          )}
-        </>
-      );
-    } else {
-      return (
-        <Text as="p" tone="subdued">
-          Currency not available
-        </Text>
-      );
-    }
+    // Always show in USD
+    return (
+      <Text as="h2" variant="headingMd" tone={tone} fontWeight="bold">
+        {value?.toFixed(2)} {currency ?? "USD"}
+      </Text>
+    );
   };
 
-  // Consistent card width for both loading and content states
   const cardWidth = "400px";
 
   return (
@@ -106,10 +84,9 @@ const BalanceCards = ({
                     "Balance Used",
                     latestTransaction?.balanceUsed,
                     latestTransaction?.currency,
-                    balanceUsedINR,
                     latestTransaction?.balanceUsed &&
                       latestTransaction.balanceUsed > 0
-                      ? "critical"
+                      ? "subdued"
                       : "success",
                   )}
                 </BlockStack>
@@ -124,13 +101,12 @@ const BalanceCards = ({
                     Capped Amount
                   </Text>
                   <Text as="p" tone="subdued">
-                    Maximum allowed Capped amount spending limit for your plan
+                    Maximum allowed capped amount spending limit for your plan
                   </Text>
                   {renderBalanceCard(
                     "Capped Amount",
                     cappedAmount,
                     cappedCurrency,
-                    cappedAmountINR,
                     "subdued",
                   )}
                 </BlockStack>
@@ -144,3 +120,4 @@ const BalanceCards = ({
 };
 
 export default BalanceCards;
+
