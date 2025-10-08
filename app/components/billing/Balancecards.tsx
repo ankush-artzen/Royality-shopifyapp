@@ -78,84 +78,81 @@ const BalanceCards = ({
   );
 
   return (
-    <Card>
-      <BlockStack gap={STACK_GAP_OUTER}>
-        <Banner title="Royalty Amount Status" tone="info" />
+    <Banner title="Royalty Amount Status" tone="info">
+      <InlineStack align="center" gap={STACK_GAP_INNER}>
+        {loadingTx ? (
+          <>
+            {/* Loading state - Balance Used */}
+            {renderLoadingCard(
+              "Balance Used",
+              "Total amount already utilized from your subscription capped amount",
+            )}
 
-        <InlineStack align="center" gap={STACK_GAP_INNER}>
-          {loadingTx ? (
-            <>
-              {/* Loading state - Balance Used */}
-              {renderLoadingCard(
-                "Balance Used",
-                "Total amount already utilized from your subscription capped amount",
-              )}
+            {/* Loading state - Capped Amount */}
+            {renderLoadingCard(
+              "Capped Amount",
+              "Maximum allowed capped amount spending limit for your plan",
+            )}
+          </>
+        ) : (
+          <>
+            {/* Balance Used */}
+            <Card background="bg-surface-info">
+              <Box
+                width={CARD_WIDTH}
+                minHeight={CARD_MIN_HEIGHT}
+                padding={CARD_PADDING}
+              >
+                <BlockStack gap={CONTENT_GAP}>
+                  <Text as="h3" variant="headingLg" fontWeight="bold">
+                    Balance Used
+                  </Text>
+                  <Text as="p" tone="subdued">
+                    Total amount already utilized from your subscription capped
+                    amount
+                  </Text>
+                  {renderBalanceCard(
+                    "Balance Used",
+                    latestTransaction?.balanceUsed,
+                    latestTransaction?.currency,
+                    latestTransaction?.balanceUsed &&
+                      latestTransaction.balanceUsed > 0
+                      ? "subdued"
+                      : "success",
+                  )}
+                </BlockStack>
+              </Box>
+            </Card>
 
-              {/* Loading state - Capped Amount */}
-              {renderLoadingCard(
-                "Capped Amount",
-                "Maximum allowed capped amount spending limit for your plan",
-              )}
-            </>
-          ) : (
-            <>
-              {/* Balance Used */}
-              <Card background="bg-surface-info">
-                <Box
-                  width={CARD_WIDTH}
-                  minHeight={CARD_MIN_HEIGHT}
-                  padding={CARD_PADDING}
-                >
-                  <BlockStack gap={CONTENT_GAP}>
-                    <Text as="h3" variant="headingLg" fontWeight="bold">
-                      Balance Used
-                    </Text>
-                    <Text as="p" tone="subdued">
-                      Total amount already utilized from your subscription
-                      capped amount
-                    </Text>
-                    {renderBalanceCard(
-                      "Balance Used",
-                      latestTransaction?.balanceUsed,
-                      latestTransaction?.currency,
-                      latestTransaction?.balanceUsed &&
-                        latestTransaction.balanceUsed > 0
-                        ? "subdued"
-                        : "success",
-                    )}
-                  </BlockStack>
-                </Box>
-              </Card>
-
-              {/* Capped Amount */}
-              <Card background="bg-surface-info">
-                <Box
-                  width={CARD_WIDTH}
-                  minHeight={CARD_MIN_HEIGHT}
-                  padding={CARD_PADDING}
-                >
-                  <BlockStack gap={CONTENT_GAP}>
-                    <Text as="h3" variant="headingLg" fontWeight="bold">
-                      Capped Amount
-                    </Text>
-                    <Text as="p" tone="subdued">
-                      Maximum allowed capped amount spending limit for your plan
-                    </Text>
-                    {renderBalanceCard(
-                      "Capped Amount",
-                      cappedAmount,
-                      cappedCurrency,
-                      "subdued",
-                    )}
-                  </BlockStack>
-                </Box>
-              </Card>
-            </>
-          )}
-        </InlineStack>
-      </BlockStack>
-    </Card>
+            {/* Capped Amount */}
+            <Card background="bg-surface-info">
+              <Box
+                width={CARD_WIDTH}
+                minHeight={CARD_MIN_HEIGHT}
+                padding={CARD_PADDING}
+              >
+                <BlockStack gap={CONTENT_GAP}>
+                  <Text as="h3" variant="headingLg" fontWeight="bold">
+                    Capped Amount
+                  </Text>
+                  <Text as="p" tone="subdued">
+                    Maximum allowed capped amount spending limit for your plan
+                  </Text>
+                  {renderBalanceCard(
+                    "Capped Amount",
+                    cappedAmount,
+                    cappedCurrency,
+                    "subdued",
+                  )}
+                </BlockStack>
+              </Box>
+            </Card>
+          </>
+        )}
+      </InlineStack>
+    </Banner>
   );
 };
 
 export default BalanceCards;
+
