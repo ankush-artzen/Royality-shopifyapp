@@ -34,4 +34,3 @@ const StatusCard = ({ billingLoading, billingApproved }: StatusCardProps) => {
 };
 
 export default StatusCard;
-
