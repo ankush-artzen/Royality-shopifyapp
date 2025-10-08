@@ -159,4 +159,3 @@ const BalanceCards = ({
 };
 
 export default BalanceCards;
-
