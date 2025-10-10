@@ -94,6 +94,7 @@ model ProductRoyalty {
   updatedAt           DateTime  @updatedAt
   price           Json?     @default("{\"amount\":0,\"currency\":\"\",\"storeCurrency\":\"\",\"storeAmount\":0}")
   expiry              DateTime? 
+
   @@unique([productId, designerId])
 }
 
@@ -112,6 +113,7 @@ model RoyaltyOrder {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
+
   @@unique([shop, orderId], name: "shop_orderId")
 }
 
@@ -127,6 +129,23 @@ type LineItem {
   royaltyPercentage Float
 }
 
+enum NotificationType {
+  royalty_assigned
+  royalty_order
+  royalty_transaction
+  royalty_withdrawal
+}
+
+model Notification {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  type           NotificationType 
+  message        String
+  shop           String          
+  designerId     String            
+  isRead         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
 
 model RoyaltySubscription {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
