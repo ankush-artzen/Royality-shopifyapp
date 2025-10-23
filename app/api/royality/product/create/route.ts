@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       isNaN(royality) ||
       !title ||
       !designerId ||
-      !expiry
+      expiry
     ) {
       console.warn("⚠️ Validation failed:", {
         shop,
@@ -102,12 +102,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ Expiry date
-    const expiryDate = new Date(expiry);
-    if (isNaN(expiryDate.getTime())) {
-      return NextResponse.json(
-        { error: "Invalid expiry date format" },
-        { status: 400 },
-      );
+    let expiryDate: Date | null = null;
+    if (expiry && expiry.trim() !== "") {
+      expiryDate = new Date(expiry);
+      if (isNaN(expiryDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid expiry date format" },
+          { status: 400 },
+        );
+      }
     }
 
     // ✅ Product already assigned check
@@ -190,7 +193,7 @@ export async function POST(req: NextRequest) {
         shop,
         price: {
           amount: convertedAmount,
-          currency: targetCurrency, // "USD"
+          currency: targetCurrency, 
           storeCurrency, // 🏪 actual shop currency
           storeAmount: originalAmount, // original price in store currency
         },

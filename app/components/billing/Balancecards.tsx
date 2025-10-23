@@ -33,14 +33,6 @@ const BalanceCards = ({
     currency: string | null | undefined,
     tone: "critical" | "success" | "subdued",
   ) => {
-    if (!latestTransaction) {
-      return (
-        <Text as="p" tone="subdued">
-          No Transaction available
-        </Text>
-      );
-    }
-
     return (
       <Text as="h2" variant="headingMd" tone={tone} fontWeight="bold">
         {currency ?? "USD"} {value?.toFixed(2)}
@@ -113,8 +105,8 @@ const BalanceCards = ({
                   </Text>
                   {renderBalanceCard(
                     "Balance Used",
-                    latestTransaction?.balanceUsed,
-                    latestTransaction?.currency,
+                    latestTransaction?.balanceUsed ?? 0,
+                    latestTransaction?.currency ?? "USD",
                     latestTransaction?.balanceUsed &&
                       latestTransaction.balanceUsed > 0
                       ? "subdued"
@@ -140,8 +132,8 @@ const BalanceCards = ({
                   </Text>
                   {renderBalanceCard(
                     "Capped Amount",
-                    cappedAmount,
-                    cappedCurrency,
+                    cappedAmount ?? 0, 
+                    cappedCurrency ?? "USD",
                     "subdued",
                   )}
                 </BlockStack>
