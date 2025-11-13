@@ -175,7 +175,6 @@ export async function createRoyaltyTransactionForOrder({
   console.log(
     `✅ RoyaltyTransaction created [txId=${royaltyTransaction?.id}, orderId=${orderId}, price=${royaltyTransaction?.price} USD]`,
   );
-  // 6️⃣ Create notification after transaction
   // 6️⃣ Create concise one-line notification after royalty transaction
   if (royaltyTransaction?.designerId) {
     const priceData = royaltyTransaction.price as {
@@ -185,6 +184,7 @@ export async function createRoyaltyTransactionForOrder({
     };
 
     const usdPrice = priceData?.usd ?? 0;
+    console.log("usdPrice",usdPrice)
     const percentage = royaltyTransaction?.royaltyPercentage ?? 0;
     const royaltyAmount = ((usdPrice * percentage) / 100).toFixed(2);
     const orderName = royaltyTransaction.orderName || "Unknown";
@@ -192,7 +192,7 @@ export async function createRoyaltyTransactionForOrder({
     const status = royaltyTransaction.status?.toUpperCase() || "PENDING";
 
     // ✨ Clean, compact message with "Transaction Done"
-    const message = `✅ Transaction Done for Order #${orderId} — ${orderName} | Royalty Earned: $${royaltyAmount} USD`;
+    const message = `✅ Transaction Done for Order #${orderId} — ${orderName} | Royalty Earned: $${usdPrice} USD`;
 
     await prisma.notification.create({
       data: {
@@ -208,3 +208,4 @@ export async function createRoyaltyTransactionForOrder({
 
   return royaltyTransaction;
 }
+
