@@ -1,22 +1,81 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { generatedSignature } from "@/lib/helper/hmacSignature";
 import prisma from "@/lib/db/prisma-connect";
 import { createRoyaltyTransactionForOrder } from "@/lib/helper/createRoyaltyTransactionForOrder";
 import { convertCurrency } from "@/lib/config/currency-utils";
 
-export async function POST(req: NextRequest) {
-  try {
-    console.log("✅ Orders webhook hit at", new Date().toISOString());
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+export async function POST(req: NextRequest) {
+  console.log(" Orders webhook hit at", new Date().toISOString());
+
+  try {
     const shop = req.headers.get("x-shopify-shop-domain");
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256")?.trim();
+    const topic = req.headers.get("x-shopify-topic") || "unknown";
+
     if (!shop) {
-      console.warn("⚠️ Missing shop header in request");
+      console.error(" Missing x-shopify-shop-domain header");
       return NextResponse.json(
         { success: false, message: "Missing shop header" },
         { status: 400 },
       );
     }
 
-    const body = await req.json();
+    if (!hmacHeader) {
+      console.error(" Missing x-shopify-hmac-sha256 header");
+      return NextResponse.json(
+        { success: false, message: "Missing signature header" },
+        { status: 400 },
+      );
+    }
+
+    //  raw body text
+    const rawBodyText = await req.text();
+    const bodyBuffer = Buffer.from(rawBodyText, "utf8");
+
+    // digest (Base64)
+    const expectedBase64 = generatedSignature(bodyBuffer);
+
+    //  Compare digests securely
+    const headerBuf = Buffer.from(hmacHeader, "base64");
+    const expectedBuf = Buffer.from(expectedBase64, "base64");
+
+    const sameLength = headerBuf.length === expectedBuf.length;
+    const digestsMatch =
+      sameLength && crypto.timingSafeEqual(headerBuf, expectedBuf);
+
+    console.log(
+      " Shopify HMAC header (base64, trimmed):",
+      hmacHeader?.slice(0, 12) + "...",
+    );
+    console.log(
+      " Local digest (base64, trimmed):",
+      expectedBase64?.slice(0, 12) + "...",
+    );
+    console.log(
+      " HMAC compare — same length:",
+      sameLength,
+      "match:",
+      digestsMatch,
+    );
+
+    if (!digestsMatch) {
+      console.error(" HMAC mismatch — unauthorized webhook");
+      return NextResponse.json(
+        { success: false, message: "Unauthorized webhook" },
+        { status: 401 },
+      );
+    }
+
+    console.log(" HMAC verification successful");
+
+    //  Parse body safely from raw text
+    const body = JSON.parse(rawBodyText);
+    console.log(" Incoming webhook:", topic, "Order ID:", body.id);
+
     const orderId = body.id?.toString();
     const orderName = body.name;
     const createdAt = new Date(body.created_at);
@@ -165,11 +224,11 @@ export async function POST(req: NextRequest) {
               },
             });
             console.log(
-              `✅ Royalty notification created for ${li.title} (Designer: ${li.designerId})`,
+              `royalty notification created for ${li.title} (Designer: ${li.designerId})`,
             );
 
             console.log(
-              `✅ Royalty notification created for ${li.title} (Designer: ${li.designerId})`,
+              ` Royalty notification created for ${li.title} (Designer: ${li.designerId})`,
             );
           }
         }
