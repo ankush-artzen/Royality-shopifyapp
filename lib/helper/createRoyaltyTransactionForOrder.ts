@@ -176,34 +176,35 @@ export async function createRoyaltyTransactionForOrder({
     `✅ RoyaltyTransaction created [txId=${royaltyTransaction?.id}, orderId=${orderId}, price=${royaltyTransaction?.price} USD]`,
   );
   // 6️⃣ Create notification after transaction
- // 6️⃣ Create concise one-line notification after royalty transaction
-if (royaltyTransaction?.designerId) {
-  const priceData = royaltyTransaction.price as {
-    storeprice?: number;
-    storeCurrency?: string;
-    usd?: number;
-  };
+  // 6️⃣ Create concise one-line notification after royalty transaction
+  if (royaltyTransaction?.designerId) {
+    const priceData = royaltyTransaction.price as {
+      storeprice?: number;
+      storeCurrency?: string;
+      usd?: number;
+    };
 
-  const usdPrice = priceData?.usd ?? 0;
-  const percentage = royaltyTransaction?.royaltyPercentage ?? 0;
-  const royaltyAmount = ((usdPrice * percentage) / 100).toFixed(2);
-  const orderName = royaltyTransaction.orderName || "Unknown Order";
-  const status = royaltyTransaction.status?.toUpperCase() || "PENDING";
+    const usdPrice = priceData?.usd ?? 0;
+    const percentage = royaltyTransaction?.royaltyPercentage ?? 0;
+    const royaltyAmount = ((usdPrice * percentage) / 100).toFixed(2);
+    const orderName = royaltyTransaction.orderName || "Unknown";
+    const orderId = royaltyTransaction.orderId || "N/A";
+    const status = royaltyTransaction.status?.toUpperCase() || "PENDING";
 
-  const message = `💰 Royalty earned for "${orderName}" — $${royaltyAmount} USD (${percentage}% of $${usdPrice} USD) `;
+    // ✨ Clean, compact message with "Transaction Done"
+    const message = `✅ Transaction Done for Order #${orderId} — ${orderName} | Royalty Earned: $${royaltyAmount} USD`;
 
-  await prisma.notification.create({
-    data: {
-      type: "royalty_order",
-      message,
-      shop,
-      designerId: royaltyTransaction.designerId,
-    },
-  });
+    await prisma.notification.create({
+      data: {
+        type: "royalty_order",
+        message,
+        shop,
+        designerId: royaltyTransaction.designerId,
+      },
+    });
 
-  console.log(`✅ Notification created: ${message}`);
-}
-
+    console.log(`✅ Notification Created: ${message}`);
+  }
 
   return royaltyTransaction;
 }
