@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
     await prisma.notification.create({
       data: {
         type: "royalty_assigned",
-        message: `Royalty assigned: "${title}" at ${royality}% - Expire ${expiryDate ? new Date(expiryDate).toLocaleDateString() : "Date not set"}`,
+        message: `Royalty assigned for  "${title}" at ${royality}%  Expiry ${expiryDate ? new Date(expiryDate).toLocaleDateString() : "Date not set"}`,
         shop,
         designerId,
       },
