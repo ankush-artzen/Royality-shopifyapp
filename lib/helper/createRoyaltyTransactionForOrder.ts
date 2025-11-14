@@ -191,7 +191,7 @@ export async function createRoyaltyTransactionForOrder({
     const orderName = royaltyTransaction.orderName || "Unknown";
     // const orderId = royaltyTransaction.orderId || "N/A";
 
-    const message = `✅ Royalty Earned for shop #${shop} order name ${orderName} | Royalty Amount: $${usdPrice} USD`;
+    const message = `Royalty Earned for shop #${shop} order name ${orderName} | Royalty Amount: $${usdPrice} USD`;
 
     await prisma.notification.create({
       data: {

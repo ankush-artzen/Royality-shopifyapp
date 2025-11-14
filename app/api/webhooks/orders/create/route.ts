@@ -218,7 +218,7 @@ export async function POST(req: NextRequest) {
             await tx.notification.create({
               data: {
                 type: "royalty_order",
-                message: `Order created for "${li.shop}" product Name  "${li.title}" at ${li.royaltyPercentage}% royalty`,
+                message: `Order created for "${shop}" product Name  "${li.title}" at ${li.royaltyPercentage}% royalty`,
                 shop,
                 designerId: li.designerId,
               },
