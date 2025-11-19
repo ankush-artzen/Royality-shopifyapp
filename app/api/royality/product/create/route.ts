@@ -64,14 +64,38 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // ✅ Validation
+    // if (
+    //   !shop ||
+    //   !productId ||
+    //   !royality ||
+    //   isNaN(royality) ||
+    //   !title ||
+    //   !designerId ||
+    //   expiry
+    // ) {
+    //   console.warn("⚠️ Validation failed:", {
+    //     shop,
+    //     productId,
+    //     royality,
+    //     title,
+    //     designerId,
+    //     expiry,
+    //   });
+    //   return NextResponse.json(
+    //     {
+    //       error:
+    //         "Missing or invalid shop, productId, title, Royality, designerId, or expiry",
+    //     },
+    //     { status: 400 },
+    //   );
+    // }
     if (
       !shop ||
       !productId ||
       !royality ||
       isNaN(royality) ||
       !title ||
-      !designerId ||
-      expiry
+      !designerId
     ) {
       console.warn("⚠️ Validation failed:", {
         shop,
@@ -84,7 +108,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Missing or invalid shop, productId, title, Royality, designerId, or expiry",
+            "Missing or invalid shop, productId, title, Royality, designerId",
         },
         { status: 400 },
       );
@@ -193,7 +217,7 @@ export async function POST(req: NextRequest) {
         shop,
         price: {
           amount: convertedAmount,
-          currency: targetCurrency, 
+          currency: targetCurrency,
           storeCurrency, // 🏪 actual shop currency
           storeAmount: originalAmount, // original price in store currency
         },
@@ -222,4 +246,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
