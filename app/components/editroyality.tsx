@@ -1,27 +1,108 @@
+// "use client";
+
+// import { Modal, TextField, BlockStack } from "@shopify/polaris";
+// import { useState, useEffect } from "react";
+
+// export interface Royalty {
+//   id: string;
+//   productId: string;
+//   shopifyId: string;
+//   title: string;
+//   image?: string | null;
+//   status?: string | null;
+//   price?: {
+//     amount: number;
+//     currency: string;
+//     storeCurrency: string;
+//     storeAmount: number;
+//   } | null;
+//   designerId: string;
+//   Royality: number;
+//   shop?: string | null;
+//   expiry?: string | null;
+// }
+
+
+// export default function EditRoyaltyModal({
+//   open,
+//   royalty,
+//   onClose,
+//   onUpdate,
+// }: EditRoyaltyModalProps) {
+//   const [newRoyality, setNewRoyality] = useState<number>(0);
+//   const [expiry, setExpiry] = useState<string>("");
+
+//   useEffect(() => {
+//     if (royalty) {
+//       setNewRoyality(royalty.Royality);
+
+//       if (royalty.expiry) {
+//         const dt = new Date(royalty.expiry);
+//         const tzOffset = dt.getTimezoneOffset() * 60000; 
+//         const localISOTime = new Date(dt.getTime() - tzOffset)
+//           .toISOString()
+//           .slice(0, 16);
+//         setExpiry(localISOTime);
+//       } else {
+//         setExpiry("");
+//       }
+//     }
+//   }, [royalty]);
+
+//   if (!royalty) return null;
+
+//   const handleUpdate = () => {
+//     if (newRoyality < 0 || newRoyality > 100) {
+//       alert("Royalty must be between 0 and 100");
+//       return;
+//     }
+
+//     onUpdate(royalty.shopifyId, {
+//       Royality: newRoyality,
+//       expiry: expiry ? new Date(expiry).toISOString() : undefined,
+//     });
+
+//     onClose();
+//   };
+
+//   return (
+//     <Modal
+//       open={open}
+//       onClose={onClose}
+//       title={`Edit Royalty for ${royalty.title}`}
+//       primaryAction={{ content: "Update", onAction: handleUpdate }}
+//       secondaryActions={[{ content: "Cancel", onAction: onClose }]}
+//     >
+//       <Modal.Section>
+//         <BlockStack gap="400">
+//           <TextField
+//             label="Royalty %"
+//             type="number"
+//             value={newRoyality.toString()}
+//             onChange={(value) =>
+//               setNewRoyality(value === "" ? 0 : Number(value))
+//             }
+//             min={0}
+//             max={100}
+//             step={0.01}
+//             autoComplete="off"
+//           />
+//           <TextField
+//             label="Expiry Date & Time"
+//             type="datetime-local"
+//             value={expiry}
+//             onChange={(value) => setExpiry(value)}
+//             autoComplete="off"
+//           />
+//         </BlockStack>
+//       </Modal.Section>
+//     </Modal>
+//   );
+// }
 "use client";
 
-import { Modal, TextField, BlockStack } from "@shopify/polaris";
+import { Modal, TextField, BlockStack, Toast, Frame } from "@shopify/polaris";
 import { useState, useEffect } from "react";
-
-export interface Royalty {
-  id: string;
-  productId: string;
-  shopifyId: string;
-  title: string;
-  image?: string | null;
-  status?: string | null;
-  price?: {
-    amount: number;
-    currency: string;
-    storeCurrency: string;
-    storeAmount: number;
-  } | null;
-  designerId: string;
-  Royality: number;
-  shop?: string | null;
-  expiry?: string | null;
-}
-
 
 export default function EditRoyaltyModal({
   open,
@@ -32,13 +113,25 @@ export default function EditRoyaltyModal({
   const [newRoyality, setNewRoyality] = useState<number>(0);
   const [expiry, setExpiry] = useState<string>("");
 
+  // Toast states
+  const [toastActive, setToastActive] = useState(false);
+  const [toastContent, setToastContent] = useState("");
+  const [toastError, setToastError] = useState(false);
+
+  const showToast = (msg: string, isError = false) => {
+    setToastContent(msg);
+    setToastError(isError);
+    setToastActive(true);
+  };
+  const dismissToast = () => setToastActive(false);
+
   useEffect(() => {
     if (royalty) {
       setNewRoyality(royalty.Royality);
 
       if (royalty.expiry) {
         const dt = new Date(royalty.expiry);
-        const tzOffset = dt.getTimezoneOffset() * 60000; 
+        const tzOffset = dt.getTimezoneOffset() * 60000;
         const localISOTime = new Date(dt.getTime() - tzOffset)
           .toISOString()
           .slice(0, 16);
@@ -53,7 +146,7 @@ export default function EditRoyaltyModal({
 
   const handleUpdate = () => {
     if (newRoyality < 0 || newRoyality > 100) {
-      alert("Royalty must be between 0 and 100");
+      showToast("Royalty must be between 0 and 100", true);
       return;
     }
 
@@ -62,40 +155,52 @@ export default function EditRoyaltyModal({
       expiry: expiry ? new Date(expiry).toISOString() : undefined,
     });
 
+    showToast("Royalty updated successfully");
     onClose();
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={`Edit Royalty for ${royalty.title}`}
-      primaryAction={{ content: "Update", onAction: handleUpdate }}
-      secondaryActions={[{ content: "Cancel", onAction: onClose }]}
-    >
-      <Modal.Section>
-        <BlockStack gap="400">
-          <TextField
-            label="Royalty %"
-            type="number"
-            value={newRoyality.toString()}
-            onChange={(value) =>
-              setNewRoyality(value === "" ? 0 : Number(value))
-            }
-            min={0}
-            max={100}
-            step={0.01}
-            autoComplete="off"
-          />
-          <TextField
-            label="Expiry Date & Time"
-            type="datetime-local"
-            value={expiry}
-            onChange={(value) => setExpiry(value)}
-            autoComplete="off"
-          />
-        </BlockStack>
-      </Modal.Section>
-    </Modal>
+    <Frame>
+      <Modal
+        open={open}
+        onClose={onClose}
+        title={`Edit Royalty for ${royalty.title}`}
+        primaryAction={{ content: "Update", onAction: handleUpdate }}
+        secondaryActions={[{ content: "Cancel", onAction: onClose }]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <TextField
+              label="Royalty %"
+              type="number"
+              value={newRoyality.toString()}
+              onChange={(value) =>
+                setNewRoyality(value === "" ? 0 : Number(value))
+              }
+              min={0}
+              max={100}
+              step={0.01}
+              autoComplete="off"
+            />
+            <TextField
+              label="Expiry Date & Time"
+              type="datetime-local"
+              value={expiry}
+              onChange={(value) => setExpiry(value)}
+              autoComplete="off"
+            />
+          </BlockStack>
+        </Modal.Section>
+      </Modal>
+
+      {toastActive && (
+        <Toast
+          content={toastContent}
+          error={toastError}
+          onDismiss={dismissToast}
+        />
+      )}
+    </Frame>
   );
 }
+
