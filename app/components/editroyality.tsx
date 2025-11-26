@@ -104,16 +104,10 @@
 import { Modal, TextField, BlockStack, Toast, Frame } from "@shopify/polaris";
 import { useState, useEffect } from "react";
 
-export default function EditRoyaltyModal({
-  open,
-  royalty,
-  onClose,
-  onUpdate,
-}: EditRoyaltyModalProps) {
+export default function EditRoyaltyModal({ open, royalty, onClose, onUpdate }: EditRoyaltyModalProps) {
   const [newRoyality, setNewRoyality] = useState<number>(0);
   const [expiry, setExpiry] = useState<string>("");
 
-  // Toast states
   const [toastActive, setToastActive] = useState(false);
   const [toastContent, setToastContent] = useState("");
   const [toastError, setToastError] = useState(false);
@@ -155,7 +149,6 @@ export default function EditRoyaltyModal({
       expiry: expiry ? new Date(expiry).toISOString() : undefined,
     });
 
-    showToast("Royalty updated successfully");
     onClose();
   };
 
